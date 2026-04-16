@@ -13,10 +13,12 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 2000; color: white;
         }
+        .logo { font-size: 3rem; color: #ff00ff; text-shadow: 0 0 15px #ff00ff; margin-bottom: 20px; font-weight: bold; }
+        .btn-container { display: flex; gap: 20px; }
         .btn-neon {
-            padding: 15px 30px; font-size: 20px; color: #0ff; border: 2px solid #0ff;
-            background: transparent; cursor: pointer; text-shadow: 0 0 10px #0ff;
-            box-shadow: 0 0 15px #0ff; border-radius: 10px; transition: 0.3s;
+            padding: 15px 25px; font-size: 18px; color: #0ff; border: 2px solid #0ff;
+            background: transparent; cursor: pointer; text-shadow: 0 0 5px #0ff;
+            box-shadow: 0 0 10px #0ff; border-radius: 10px; transition: 0.3s;
         }
         .btn-neon:hover { background: #0ff; color: #000; }
     </style>
@@ -24,98 +26,111 @@
 <body>
 
     <div id="ui-inicio">
-        <h1 style="color: #ff00ff; text-shadow: 0 0 20px #ff00ff; font-size: 50px;">WATERWORLD</h1>
-        <button class="btn-neon" onclick="empezarJuego()">CONECTAR I.D.</button>
+        <div class="logo">WATERWORLD</div>
+        <p>SELECCIONA TU I.D. OPERATIVO</p>
+        <div class="btn-container">
+            <button class="btn-neon" onclick="iniciar('hombre')">HOMBRE</button>
+            <button class="btn-neon" onclick="iniciar('mujer')" style="color:#f0f; border-color:#f0f; box-shadow:0 0 10px #f0f;">MUJER</button>
+        </div>
     </div>
 
     <div id="game-container"></div>
 
 <script>
-let game;
+let seleccion = 'hombre';
 
-function empezarJuego() {
+function iniciar(genero) {
+    seleccion = genero;
     document.getElementById('ui-inicio').style.display = 'none';
+    lanzarJuego();
+}
+
+function lanzarJuego() {
     const config = {
         type: Phaser.AUTO,
         width: 800,
         height: 1200,
         parent: 'game-container',
-        physics: { default: 'arcade', arcade: { gravity: { y: 0 } } },
+        scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+        physics: { default: 'arcade' },
         scene: { preload: preload, create: create, update: update }
     };
-    game = new Phaser.Game(config);
+    new Phaser.Game(config);
 }
 
 function preload() {
-    // Asegúrate de que estos nombres sean exactos en tu GitHub
-    this.load.image('fondo', 'fondo.jpg');
-    this.load.image('personaje', 'personaje.jpg');
-    this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg'); 
+    // IMPORTANTE: Extensiones corregidas a .jpg como tus archivos reales
+    this.load.image('fondo', 'fondo.jpg'); 
+    this.load.image('spritesheet', 'personaje.jpg');
 }
 
 function create() {
-    // 1. Fondo
-    this.add.image(400, 600, 'fondo').setDisplaySize(800, 1200);
+    const { width, height } = this.scale;
 
-    // 2. Búnker (Zona segura)
-    this.bunker = this.physics.add.staticImage(400, 150, 'bunker').setScale(0.5);
+    // 1. FONDO
+    this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height);
+
+    // 2. JUGADOR (Recorte manual para evitar errores de spritesheet)
+    this.player = this.add.sprite(width/2, height * 0.45, 'spritesheet');
     
-    // 3. Personaje (Recortamos solo el primer cuadro para evitar el error de la hoja entera)
-    // Usamos setCrop para mostrar solo una parte de la imagen 'personaje.jpg'
-    this.player = this.physics.add.sprite(400, 1000, 'personaje');
-    this.player.setCrop(0, 0, 250, 300); // Ajusta estos valores según tu dibujo
-    this.player.setCollideWorldBounds(true);
+    // Si eliges mujer, recortamos la segunda fila de tu imagen personaje.jpg
+    if (seleccion === 'mujer') {
+        this.player.setCrop(0, 143, 250, 143); 
+    } else {
+        this.player.setCrop(0, 0, 250, 143); // Fila del hombre
+    }
+    this.player.setScale(1.5);
 
-    // 4. Animación de Latido (Procedural)
+    // 3. ANIMACIÓN DE LATIDO (Tween procedural)
     this.tweens.add({
         targets: this.player,
-        scaleX: 1.1,
-        scaleY: 0.9,
-        duration: 800,
+        scaleX: 1.7,
+        scaleY: 1.3,
+        duration: 900,
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut'
     });
 
-    // 5. Lógica del "Achís" (Explosión)
+    // 4. LÓGICA DE MOVIMIENTO
     this.isSafe = false;
+    this.posOficina = height * 0.45;
+    this.posBunker = height * 0.85;
+
+    this.input.on('pointerdown', () => {
+        this.isSafe = !this.isSafe;
+        this.tweens.add({
+            targets: this.player,
+            y: this.isSafe ? this.posBunker : this.posOficina,
+            duration: 500,
+            ease: 'Power2'
+        });
+    });
+
+    // 5. CICLO DE ALERTA (Achís)
+    this.alertaTexto = this.add.text(width/2, 300, "", { fontSize: '80px', fill: '#ff0', fontStyle: 'bold' }).setOrigin(0.5);
+    
     this.time.addEvent({
         delay: 5000,
         callback: () => {
-            this.cameras.main.shake(200, 0.05);
-            this.add.text(400, 400, "¡ACHÍS!", { fontSize: '100px', fill: '#ff0' }).setOrigin(0.5);
+            this.alertaTexto.setText("¡ACHÍS! 🤧");
+            this.cameras.main.shake(500, 0.01);
             
-            this.time.delayedCall(1000, () => {
+            this.time.delayedCall(1500, () => {
+                this.alertaTexto.setText("");
                 if (!this.isSafe) {
-                    this.cameras.main.flash(500, 255, 0, 0); // Flash rojo de muerte
+                    this.cameras.main.flash(500, 255, 0, 0);
                     this.player.setTint(0xff0000);
-                    alert("GAME OVER - No llegaste al refugio");
+                    alert("SISTEMA COLAPSADO: No llegaste al refugio.");
                     location.reload();
                 }
             });
         },
         loop: true
     });
-
-    // 6. Colisión con Búnker
-    this.physics.add.overlap(this.player, this.bunker, () => {
-        this.isSafe = true;
-        this.player.setAlpha(0.7); // Efecto de estar "dentro"
-    }, null, this);
-
-    this.cursors = this.input.keyboard.createCursorKeys();
 }
 
-function update() {
-    this.player.setVelocity(0);
-    this.isSafe = false; // Reset cada frame a menos que esté tocando el búnker
-
-    if (this.cursors.left.isDown) this.player.setVelocityX(-400);
-    else if (this.cursors.right.isDown) this.player.setVelocityX(400);
-
-    if (this.cursors.up.isDown) this.player.setVelocityY(-400);
-    else if (this.cursors.down.isDown) this.player.setVelocityY(400);
-}
+function update() {}
 </script>
 </body>
 </html>
