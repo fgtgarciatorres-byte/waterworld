@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>WaterWorld - Edición Explosiva</title>
+    <title>WaterWorld - Sistema Operativo</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
@@ -44,16 +44,16 @@ function comenzar(g) {
 }
 
 function preload() {
-    // Assets base
+    // Assets principales (Confirmados como .png)
     this.load.image('fondo', 'fondo.png');
     this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
+    this.load.image('img_explosion', 'explosion.png'); // CAMBIADO A .PNG
     
-    // Personajes
+    // Personajes PNG
     this.load.image('h_n', 'personajeh.png');  this.load.image('h_a', 'personajeha.png');  this.load.image('h_m', 'personajehm.png');
     this.load.image('m_n', 'personajem.png');  this.load.image('m_a', 'personajema.png');  this.load.image('m_m', 'personajemm.png');
-    
-    // NUEVA IMAGEN DE EXPLOSIÓN
-    this.load.image('img_explosion', 'explosion.jpg');
+
+    this.load.on('loaderror', (file) => console.error("Falta el archivo: " + file.src));
 }
 
 function create() {
@@ -63,15 +63,16 @@ function create() {
     this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height).setDepth(-1);
     this.add.image(width/2, height * 0.85, 'bunker').setScale(0.6).setAlpha(0.6);
 
-    // 2. PERSONAJE (Contenedor)
+    // 2. PERSONAJE (Contenedor para agrupar sprite y nombre si se añade luego)
     this.pContainer = this.add.container(width/2, height * 0.3);
     let textKey = genero === 'h' ? 'h_n' : 'm_n';
     this.sprite = this.add.sprite(0, 0, textKey).setScale(0.7);
     this.pContainer.add(this.sprite);
 
+    // Latido suave
     this.tweens.add({ targets: this.pContainer, scale: 1.05, duration: 800, yoyo: true, repeat: -1 });
 
-    // 3. UI: VIDAS Y RELOJ
+    // 3. UI: VIDAS Y RELOJ ROJO
     this.vidas = 3;
     this.corazones = this.add.text(30, 40, '❤️❤️❤️', { fontSize: '45px' });
     
@@ -80,7 +81,7 @@ function create() {
         fontSize: '45px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 
     });
 
-    // Evento Reloj: Límite 15:00 PM
+    // Reloj Acelerado
     this.time.addEvent({
         delay: 1000,
         callback: () => {
@@ -92,35 +93,33 @@ function create() {
             let m = this.minutos === 0 ? '00' : this.minutos;
             this.relojTexto.setText(`${h}:${m} PM`);
 
-            // COMPROBAR LÍMITE DE TIEMPO (15 PM)
-            if(this.horas >= 15) {
-                this.morirDefinitivamente("TIEMPO AGOTADO");
-            }
+            if(this.horas >= 15) this.morirDefinitivamente("JORNADA FINALIZADA");
         },
         loop: true
     });
 
-    // 4. MOVIMIENTO
+    // 4. MOVIMIENTO (Click/Tap)
     this.input.on('pointerdown', () => {
         if(this.vidas <= 0) return;
         let destinoY = (this.pContainer.y < 600) ? height * 0.82 : height * 0.3;
         this.tweens.add({ targets: this.pContainer, y: destinoY, duration: 500, ease: 'Power2' });
     });
 
-    // 5. CICLO ACHÍS
+    // 5. CICLO ACHÍS (Peligro cada 6 seg)
     this.time.addEvent({
         delay: 6000,
         loop: true,
         callback: () => {
             if(this.vidas <= 0 || this.horas >= 15) return;
-            this.sprite.setTexture(genero === 'h' ? 'h_a' : 'm_a');
+            this.sprite.setTexture(genero === 'h' ? 'h_a' : 'm_a'); // Imagen Asustado
             this.cameras.main.shake(400, 0.01);
             
             this.time.delayedCall(2000, () => {
+                // Si está en la mitad superior (Y < 600) pierde vida
                 if (this.pContainer.y < 600) {
                     this.quitarVida();
                 } else {
-                    this.sprite.setTexture(genero === 'h' ? 'h_n' : 'm_n');
+                    this.sprite.setTexture(genero === 'h' ? 'h_n' : 'm_n'); // Vuelve a Normal
                 }
             });
         }
@@ -142,26 +141,24 @@ function quitarVida() {
 }
 
 function morirDefinitivamente(motivo) {
-    if(this.muertoYa) return;
-    this.muertoYa = true;
+    if(this.yaMuerto) return;
+    this.yaMuerto = true;
     this.vidas = 0;
 
-    // 1. Sprite de Muerto
+    // Cambia al sprite muerto
     this.sprite.setTexture(genero === 'h' ? 'h_m' : 'm_m');
 
-    // 2. EFECTO EXPLOSIÓN (IMAGEN)
+    // EFECTO EXPLOSIÓN (IMAGEN .PNG)
     let explosion = this.add.image(this.pContainer.x, this.pContainer.y, 'img_explosion');
     explosion.setScale(0.1).setDepth(100);
 
-    // Animación: Aumentar escala + Vibración
     this.tweens.add({
         targets: explosion,
-        scale: 3,
-        duration: 1000,
+        scale: 3.5,
+        duration: 800,
         ease: 'Expo.out'
     });
 
-    // Sacudida de cámara violenta
     this.cameras.main.shake(1000, 0.05);
 
     this.time.delayedCall(2500, () => {
