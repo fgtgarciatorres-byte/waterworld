@@ -3,36 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - Oficina Nuclear</title>
+    <title>WaterWorld - Pro Graphics Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        #ui-inicio {
-            position: absolute; width: 100%; height: 100%;
-            background: radial-gradient(circle, #0a1422 0%, #000 100%);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 20; color: white; font-family: 'Segoe UI', sans-serif;
-        }
-        .logo { font-size: 3rem; font-weight: 900; color: #ff00ff; text-shadow: 0 0 10px #ff00ff; margin-bottom: 20px; letter-spacing: 3px; }
-        input { background: rgba(0,0,0,0.5); border: 2px solid #00dbff; color: #00dbff; font-size: 1.5rem; padding: 10px; width: 160px; text-align: center; margin-bottom: 20px; outline: none; border-radius: 12px; }
-        button { background: #ff00ff; border: none; border-radius: 50px; color: white; padding: 15px 40px; font-size: 1.2rem; font-weight: bold; cursor: pointer; box-shadow: 0 0 20px #ff00ff; transition: 0.3s; }
-        button:hover { transform: scale(1.1); }
     </style>
 </head>
 <body>
-
-<div id="ui-inicio">
-    <div class="logo">WATERWORLD</div>
-    <input type="text" id="playerInitials" maxlength="3" placeholder="AAA">
-    <button id="btnStart">ACCEDER</button>
-</div>
 
 <script>
 class OficinaScene extends Phaser.Scene {
     constructor() { super({ key: 'OficinaScene' }); }
 
     preload() {
-        // Cargamos la imagen desde tu carpeta de GitHub
+        // CARGA DE IMÁGENES
+        this.load.image('fondo_oficina', 'fondo.png'); 
         this.load.spritesheet('jugador_img', 'personaje.png', { frameWidth: 64, frameHeight: 64 });
     }
 
@@ -42,110 +27,122 @@ class OficinaScene extends Phaser.Scene {
         this.workTime = 7 * 60;
         this.isSafe = false;
         this.isDead = false;
-        this.colleagues = [];
+        this.npcs = [];
 
-        // --- ESCENARIO ---
-        this.add.rectangle(0, 0, width, height/2, 0x1a2533).setOrigin(0);
-        this.add.rectangle(0, height/2, width, height/2, 0x050505).setOrigin(0);
-        
-        // Decoración de oficina (Escritorios y Monitores Neón)
+        // --- 1. FONDO DE IMAGEN REAL ---
+        if (this.textures.exists('fondo_oficina')) {
+            let bg = this.add.image(width/2, height/2, 'fondo_oficina');
+            // Ajuste perfecto: escalamos la imagen para que cubra toda la pantalla
+            let scaleX = width / bg.width;
+            let scaleY = height / bg.height;
+            let scale = Math.max(scaleX, scaleY);
+            bg.setScale(scale).setAlpha(0.6); // Un poco de transparencia para el toque neón
+        } else {
+            // Fondo de emergencia si no carga la imagen
+            this.add.rectangle(0, 0, width, height/2, 0x1a2533).setOrigin(0);
+            this.add.rectangle(0, height/2, width, height/2, 0x0a0a0a).setOrigin(0);
+        }
+
+        // Capa de "niebla neón" para mejorar la estética
+        this.add.rectangle(0, height/2, width, 5, 0x00dbff).setOrigin(0, 0.5).setAlpha(0.5);
+
+        // --- 2. DECORACIÓN (ESCRITORIOS) ---
         for(let i=0; i<4; i++) {
             let dx = 100 + (i * (width/4));
-            this.add.rectangle(dx, height/3.5, 140, 15, 0x7f8c8d).setOrigin(0.5); // Mesa
-            this.add.rectangle(dx, height/3.5 - 25, 50, 40, 0x222).setStrokeStyle(2, 0x00dbff).setOrigin(0.5); // Monitor
+            // Escritorio neón
+            this.add.rectangle(dx, height/3.5, 140, 10, 0x34495e).setOrigin(0.5).setStrokeStyle(2, 0x00dbff);
             
             if (i !== 1) { 
                 let npc = this.add.container(dx, height/3.5);
-                let nBody = this.add.rectangle(0, -10, 30, 40, 0x34495e).setOrigin(0.5);
-                let nHead = this.add.circle(0, -35, 15, 0xffdbac).setOrigin(0.5);
+                let nBody = this.add.rectangle(0, -15, 30, 40, 0x2980b9).setOrigin(0.5);
+                let nHead = this.add.circle(0, -45, 15, 0xffdbac).setOrigin(0.5);
                 npc.add([nBody, nHead]);
-                this.colleagues.push({body: nBody, head: nHead});
+                this.npcs.push({ container: npc, body: nBody, head: nHead });
             }
         }
 
-        // --- JUGADOR ---
+        // --- 3. JUGADOR ---
         this.player = this.add.container(width/2, height/4);
         this.renderPlayer();
 
-        // --- BOMBA ---
-        this.nuke = this.add.circle(width/2, height/4, 0, 0xff6600, 0.6);
+        // --- 4. EFECTOS DE LA EXPLOSIÓN ---
+        this.nukeFlash = this.add.rectangle(0, 0, width, height, 0xffffff).setOrigin(0).setAlpha(0).setDepth(10);
+        this.nukeWave = this.add.circle(width/2, height/4, 0, 0xffcc00, 0.8).setDepth(5);
 
-        // --- UI ---
-        this.add.rectangle(0, 0, width, 80, 0x000, 0.8).setOrigin(0);
-        this.hpText = this.add.text(30, 25, "HP: ❤️❤️❤️", {fontSize: '24px', fill: '#00dbff', fontStyle: 'bold'});
-        this.clockText = this.add.text(width - 30, 25, "7h 00m", {fontSize: '24px', fill: '#ff00ff', fontStyle: 'bold'}).setOrigin(1, 0);
+        // --- 5. UI ---
+        this.add.rectangle(0, 0, width, 80, 0x000, 0.9).setOrigin(0).setDepth(20);
+        this.hpText = this.add.text(30, 25, "HP: ❤️❤️❤️", {fontSize: '24px', fill: '#00dbff', fontStyle: 'bold'}).setDepth(21);
+        this.clockText = this.add.text(width - 30, 25, "7h 00m", {fontSize: '24px', fill: '#ff00ff', fontStyle: 'bold'}).setOrigin(1, 0).setDepth(21);
 
-        // Controles
-        this.input.on('pointerdown', () => this.handleAction());
-        this.startSneezeLogic();
+        this.input.on('pointerdown', () => this.movePlayer());
+        this.startSneeze();
     }
 
     renderPlayer() {
         if (this.textures.exists('jugador_img')) {
-            this.sprite = this.add.sprite(0, 0, 'jugador_img', 0).setScale(1.8);
+            this.sprite = this.add.sprite(0, 0, 'jugador_img', 0).setScale(2);
             this.player.add(this.sprite);
         } else {
-            // Backup Vectorial (Traje + Taza con vapor)
-            this.pBody = this.add.rectangle(0, 0, 40, 60, 0x2980b9);
-            this.pHead = this.add.circle(0, -45, 22, 0xffdbac);
-            this.pCup = this.add.rectangle(28, 0, 12, 16, 0xffffff);
-            this.pSteam = this.add.text(28, -15, "~", {fontSize:'16px', fill:'#fff'}).setOrigin(0.5);
-            this.player.add([this.pBody, this.pHead, this.pCup, this.pSteam]);
-            this.tweens.add({ targets: this.pSteam, y: -30, alpha: 0, duration: 800, repeat: -1 });
+            // Backup visual "Pro"
+            let pBody = this.add.rectangle(0, 0, 40, 60, 0x2980b9).setStrokeStyle(2, 0x00dbff);
+            let pHead = this.add.circle(0, -48, 24, 0xffdbac);
+            this.player.add([pBody, pHead]);
         }
     }
 
-    handleAction() {
+    movePlayer() {
         if (this.isDead) return;
         this.isSafe = !this.isSafe;
         let targetY = this.isSafe ? (this.scale.height * 0.75) : (this.scale.height * 0.25);
-        this.tweens.add({ targets: this.player, y: targetY, duration: 300, ease: 'Power2' });
+        this.tweens.add({ targets: this.player, y: targetY, duration: 400, ease: 'Cubic.easeOut' });
     }
 
-    startSneezeLogic() {
+    startSneeze() {
         if (this.isDead) return;
         this.time.delayedCall(Phaser.Math.Between(3000, 6000), () => {
-            this.sTxt = this.add.text(this.scale.width/2, 150, "¡¡ACHÍS!! 🤧", { 
-                fontSize: '60px', fill: '#ff0', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 
-            }).setOrigin(0.5);
-            this.time.delayedCall(1200, () => this.detonate());
+            let txt = this.add.text(this.scale.width/2, 180, "¡¡ACHÍS!! 🤧", { 
+                fontSize: '70px', fill: '#ff0', fontStyle: 'bold', stroke: '#f00', strokeThickness: 10 
+            }).setOrigin(0.5).setDepth(15);
+            
+            this.tweens.add({ targets: txt, scale: 1.3, duration: 150, yoyo: true, repeat: 4 });
+            this.time.delayedCall(1500, () => { txt.destroy(); this.detonate(); });
         });
     }
 
     detonate() {
-        if (this.sTxt) this.sTxt.destroy();
-        this.cameras.main.flash(300);
-        this.cameras.main.shake(400, 0.01);
-
-        // Animación expansión bomba
-        this.nuke.setRadius(0).setAlpha(0.6);
-        this.tweens.add({ targets: this.nuke, radius: 800, alpha: 0, duration: 700 });
+        this.nukeFlash.setAlpha(1);
+        this.tweens.add({ targets: this.nukeFlash, alpha: 0, duration: 1200 });
+        
+        this.nukeWave.setRadius(0).setAlpha(0.8);
+        this.tweens.add({ targets: this.nukeWave, radius: 1200, alpha: 0, duration: 1000 });
+        
+        this.cameras.main.shake(600, 0.03);
 
         if (!this.isSafe) {
-            this.isDead = true; this.lives--;
+            this.isDead = true;
+            this.lives--;
             this.hpText.setText(`HP: ${'❤️'.repeat(this.lives)}`);
-            this.triggerDeath();
+            this.applyDeathVisuals();
         } else {
-            // Sobrevives: Carbonizar compañeros arriba
-            this.colleagues.forEach(c => {
-                c.body.setFillStyle(0x111111);
-                c.head.setFillStyle(0xffffff);
+            // Sobrevives: Efecto de carbonización en NPCs
+            this.npcs.forEach(npc => {
+                npc.body.setFillStyle(0x111111);
+                npc.head.setFillStyle(0xffffff);
+                this.add.text(npc.container.x, npc.container.y - 45, "💀", {fontSize:'22px'}).setOrigin(0.5);
             });
-            this.startSneezeLogic();
+            this.startSneeze();
         }
     }
 
-    triggerDeath() {
-        // Convertir en esqueleto
-        if (this.sprite) this.sprite.setFrame(4);
-        else {
-            this.pBody.setFillStyle(0x111111);
-            this.pHead.setFillStyle(0xffffff);
-            this.player.add(this.add.text(0, -45, "💀", {fontSize:'24px'}).setOrigin(0.5));
-        }
+    applyDeathVisuals() {
+        this.player.list.forEach(item => {
+            if (item.type === 'Rectangle') item.setFillStyle(0x111111);
+            if (item.type === 'Arc') item.setFillStyle(0xffffff);
+        });
+        this.player.add(this.add.text(0, -48, "💀", {fontSize:'32px'}).setOrigin(0.5));
 
         this.time.delayedCall(2500, () => {
-            alert("¡TE HAN DESPEDIDO... DE LA VIDA!");
+            alert("GAS NUCLEAR DETECTADO - JORNADA TERMINADA");
             location.reload();
         });
     }
@@ -160,17 +157,14 @@ class OficinaScene extends Phaser.Scene {
     }
 }
 
-document.getElementById('btnStart').addEventListener('click', () => {
-    document.getElementById('ui-inicio').style.display = 'none';
-    const config = {
-        type: Phaser.AUTO,
-        width: 800, height: 1200,
-        backgroundColor: '#000',
-        scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-        scene: [OficinaScene]
-    };
-    new Phaser.Game(config);
-});
+const config = {
+    type: Phaser.AUTO,
+    width: 800, height: 1200,
+    backgroundColor: '#000',
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    scene: [OficinaScene]
+};
+new Phaser.Game(config);
 </script>
 </body>
 </html>
