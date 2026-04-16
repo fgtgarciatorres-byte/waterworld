@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>WaterWorld - Operativo Final</title>
+    <title>WaterWorld - Calibración Zonas</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
@@ -11,7 +11,6 @@
             background: #001; display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 2000; color: #0ff; text-align: center;
         }
-        .input-id { background: #000; border: 2px solid #0ff; color: #0ff; padding: 10px; margin: 10px; font-size: 20px; text-align: center; }
         .btn { padding: 15px 30px; margin: 10px; cursor: pointer; background: transparent; border: 2px solid #f0f; color: #f0f; box-shadow: 0 0 10px #f0f; font-weight: bold; }
     </style>
 </head>
@@ -19,8 +18,7 @@
 
     <div id="ui-inicio">
         <h1 style="font-size: 45px; text-shadow: 0 0 15px #0ff;">WATERWORLD</h1>
-        <input type="text" id="p-id" class="input-id" placeholder="I.D. EMPLEADO" maxlength="10">
-        <div>
+        <div style="margin: 20px;">
             <button class="btn" onclick="comenzar('h')">♂ HOMBRE</button>
             <button class="btn" onclick="comenzar('m')" style="border-color:#0ff; color:#0ff; box-shadow: 0 0 10px #0ff;">♀ MUJER</button>
         </div>
@@ -28,12 +26,9 @@
 
 <script>
 let genero = 'h';
-let nombreID = "OPERADOR";
 
 function comenzar(g) {
     genero = g;
-    let val = document.getElementById('p-id').value;
-    if(val) nombreID = val.toUpperCase();
     document.getElementById('ui-inicio').style.display = 'none';
     
     const config = {
@@ -61,31 +56,35 @@ function create() {
 
     // 1. ESCENARIO
     this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height).setDepth(-1);
-    this.bunker = this.physics.add.staticImage(width/2, height * 0.85, 'bunker').setScale(0.6);
+    this.bunker = this.add.image(width/2, height * 0.85, 'bunker').setScale(0.6).setAlpha(0.6);
 
-    // 2. PERSONAJE Y CONTENEDOR (Lo que ya funcionaba)
-    this.pContainer = this.add.container(width/2, height * 0.4);
+    // 2. PERSONAJE (Contenedor para latido y nombre)
+    this.pContainer = this.add.container(width/2, height * 0.3); // Inicia arriba (Zona Peligro)
     let textKey = genero === 'h' ? 'h_n' : 'm_n';
-    this.sprite = this.add.sprite(0, 0, textKey).setScale(0.8);
-    this.label = this.add.text(0, -120, nombreID, { fontSize: '28px', fill: '#0ff', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
-    this.pContainer.add([this.sprite, this.label]);
-    this.physics.add.existing(this.pContainer);
+    this.sprite = this.add.sprite(0, 0, textKey).setScale(0.7);
+    this.pContainer.add(this.sprite);
 
-    this.tweens.add({ targets: this.pContainer, scale: 1.05, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    // Latido constante
+    this.tweens.add({ targets: this.pContainer, scale: 1.1, duration: 800, yoyo: true, repeat: -1 });
 
-    // 3. NUEVA INTERFAZ (UI)
+    // 3. UI: VIDAS Y RELOJ (ROJO)
     this.vidas = 3;
-    this.corazones = this.add.text(30, 30, '❤️❤️❤️', { fontSize: '45px' }); // Vidas arriba izquierda
+    this.corazones = this.add.text(30, 40, '❤️❤️❤️', { fontSize: '45px' });
     
-    this.horas = 8;
-    this.minutos = 0;
-    this.relojTexto = this.add.text(width - 220, 30, '08:00 AM', { fontSize: '40px', fill: '#0ff', fontStyle: 'bold' }); // Reloj arriba derecha
+    this.horas = 8; this.minutos = 0;
+    this.relojTexto = this.add.text(width - 250, 40, '08:00 AM', { 
+        fontSize: '45px', 
+        fill: '#ff0000', // RELOJ ROJO
+        fontStyle: 'bold',
+        stroke: '#000',
+        strokeThickness: 6
+    });
 
-    // Evento de tiempo para el reloj (Rápido)
+    // Reloj acelerado: Cada 1 seg real pasan 30 min de juego
     this.time.addEvent({
-        delay: 1000, // Cada 1 segundo real...
+        delay: 1000,
         callback: () => {
-            this.minutos += 15; // ...pasan 15 minutos de juego
+            this.minutos += 30;
             if(this.minutos >= 60) { this.minutos = 0; this.horas++; }
             let h = this.horas < 10 ? '0'+this.horas : this.horas;
             let m = this.minutos === 0 ? '00' : this.minutos;
@@ -94,27 +93,31 @@ function create() {
         loop: true
     });
 
-    // 4. MOVIMIENTO
-    this.isSafe = false;
+    // 4. MOVIMIENTO (Click para alternar entre arriba y abajo)
     this.input.on('pointerdown', () => {
         if(this.vidas <= 0) return;
-        this.isSafe = !this.isSafe;
-        this.tweens.add({ targets: this.pContainer, y: this.isSafe ? height * 0.82 : height * 0.4, duration: 600, ease: 'Cubic.easeOut' });
+        let destinoY = (this.pContainer.y < 600) ? height * 0.82 : height * 0.3;
+        this.tweens.add({ targets: this.pContainer, y: destinoY, duration: 500, ease: 'Power2' });
     });
 
-    // 5. SECUENCIA ACHÍS (SISTEMA DE VIDAS)
+    // 5. SECUENCIA ACHÍS Y DETECCIÓN DE ZONA
     this.time.addEvent({
-        delay: 7000,
+        delay: 6000,
         loop: true,
         callback: () => {
             if(this.vidas <= 0) return;
+            
+            // Fase 1: Susto
             this.sprite.setTexture(genero === 'h' ? 'h_a' : 'm_a');
             this.cameras.main.shake(400, 0.01);
             
+            // Fase 2: Comprobar posición tras 2 segundos
             this.time.delayedCall(2000, () => {
-                if (!this.isSafe) {
+                // LÓGICA DE ZONA: Si Y es menor a 600 está en la mitad superior (MUERE)
+                if (this.pContainer.y < 600) {
                     this.quitarVida();
                 } else {
+                    // Está en la mitad inferior (SALVADO)
                     this.sprite.setTexture(genero === 'h' ? 'h_n' : 'm_n');
                 }
             });
@@ -124,29 +127,30 @@ function create() {
 
 function quitarVida() {
     this.vidas--;
-    // Actualizar visual de corazones
-    let stringCorazones = '';
-    for(let i=0; i<this.vidas; i++) stringCorazones += '❤️';
-    this.corazones.setText(stringCorazones);
+    let hearts = '';
+    for(let i=0; i<this.vidas; i++) hearts += '❤️';
+    this.corazones.setText(hearts);
 
     if (this.vidas <= 0) {
-        this.ejecutarMuerte();
+        this.morirDefinitivamente();
     } else {
-        this.cameras.main.flash(400, 255, 0, 0);
-        this.sprite.setTexture(genero === 'h' ? 'h_n' : 'm_n'); // Vuelve a normal para seguir jugando
+        // Daño temporal
+        this.cameras.main.flash(500, 255, 0, 0);
+        this.sprite.setTexture(genero === 'h' ? 'h_n' : 'm_n');
     }
 }
 
-function ejecutarMuerte() {
-    this.sprite.setTexture(genero === 'h' ? 'h_m' : 'm_m'); // Sprite MUERTO
-    this.cameras.main.flash(1000, 255, 0, 0);
+function morirDefinitivamente() {
+    // 1. Cambiar a sprite de MUERTO
+    this.sprite.setTexture(genero === 'h' ? 'h_m' : 'm_m');
+    this.cameras.main.shake(800, 0.05);
 
-    // Video de explosión siempre al frente
+    // 2. Activar VIDEO de Explosión
     let video = this.add.video(this.pContainer.x, this.pContainer.y, 'v_exp');
-    video.setDepth(100).setScale(1.5).play();
+    video.setDepth(100).setScale(2).play();
 
     this.time.delayedCall(3000, () => {
-        alert("GAME OVER: I.D. " + nombreID + " ELIMINADO");
+        alert("TERMINAL DESTRUIDA - I.D. PERDIDO");
         location.reload();
     });
 }
