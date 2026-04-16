@@ -1,8 +1,21 @@
-/**
- * WATERWORLD - Estructura Limpia
- * Personaje: Recorte manual para evitar errores de hoja irregular.
- */
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaterWorld - Edición Neón</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <style>
+        body { margin: 0; background-color: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
+    </style>
+</head>
+<body>
 
+<div id="game-container"></div>
+
+<script>
+// AQUÍ VA EL CÓDIGO QUE TE PASÉ
 const config = {
     type: Phaser.AUTO,
     width: 800,
@@ -17,83 +30,84 @@ const config = {
 
 const game = new Phaser.Game(config);
 
-class Boot extends Phaser.Scene {
-    constructor() { super('Boot'); }
+function Boot() {}
+Boot.prototype = Object.create(Phaser.Scene.prototype);
+Boot.prototype.constructor = Boot;
+Phaser.Scene.call(Boot, { key: 'Boot' });
 
-    preload() {
-        // Carga de imágenes
-        this.load.image('fondo', 'fondo.jpg'); // Tu archivo de fondo
-        this.load.image('personajes', 'personaje.jpg'); // Tu hoja de sprites
-    }
+Boot.prototype.preload = function() {
+    // Asegúrate de que los nombres coincidan con tus archivos en GitHub
+    this.load.image('fondo', 'fondo.jpg'); 
+    this.load.image('personajes', 'personaje.jpg'); 
+};
 
-    create() {
-        // Definimos las áreas de recorte manualmente (Coordenadas aproximadas según tu imagen)
-        // [X, Y, Ancho, Alto]
-        this.textures.addSpriteSheetFromLayer('player_m', 'personajes', { x: 0, y: 0, width: 200, height: 250 }); // Oficinista Azul
-        this.textures.addSpriteSheetFromLayer('player_f', 'personajes', { x: 0, y: 250, width: 200, height: 250 }); // Oficinista Rosa
-        
-        this.scene.start('MainMenu');
-    }
-}
+Boot.prototype.create = function() {
+    this.scene.start('MainMenu');
+};
 
-class MainMenu extends Phaser.Scene {
-    constructor() { super('MainMenu'); }
+// --- ESCENA MENÚ ---
+function MainMenu() {}
+MainMenu.prototype = Object.create(Phaser.Scene.prototype);
+MainMenu.prototype.constructor = MainMenu;
+Phaser.Scene.call(MainMenu, { key: 'MainMenu' });
 
-    create() {
-        this.add.image(400, 600, 'fondo').setDisplaySize(800, 1200).setAlpha(0.6);
+MainMenu.prototype.create = function() {
+    this.add.image(400, 600, 'fondo').setDisplaySize(800, 1200).setAlpha(0.6);
+    this.add.text(400, 300, 'WATERWORLD', { fontSize: '80px', fill: '#0ff', fontStyle: 'bold' }).setOrigin(0.5);
+    this.add.text(400, 500, 'ELIGE PERSONAJE', { fontSize: '40px', fill: '#fff' }).setOrigin(0.5);
 
-        this.add.text(400, 300, 'WATERWORLD', { fontSize: '80px', fill: '#0ff', fontStyle: 'bold' }).setOrigin(0.5);
-        
-        this.add.text(400, 500, 'SELECCIONA PERSONAJE', { fontSize: '30px', fill: '#fff' }).setOrigin(0.5);
-
-        // Botón Hombre
-        let btnM = this.add.image(300, 700, 'personajes', 0).setInteractive().setScale(0.8);
-        btnM.on('pointerdown', () => this.iniciarJuego('player_m'));
-
-        // Botón Mujer
-        let btnF = this.add.image(500, 700, 'personajes', 4).setInteractive().setScale(0.8);
-        btnF.on('pointerdown', () => this.iniciarJuego('player_f'));
-    }
-
-    iniciarJuego(textura) {
-        this.registry.set('p_textura', textura);
+    // Botones con los personajes de tu hoja
+    let btnM = this.add.text(250, 700, '♂ HOMBRE', { fontSize: '50px', fill: '#0ff' }).setInteractive();
+    btnM.on('pointerdown', () => {
+        this.registry.set('p_frame', 0); // El primer cuadro de tu imagen
         this.scene.start('Game');
-    }
-}
+    });
 
-class Game extends Phaser.Scene {
-    constructor() { super('Game'); }
+    let btnF = this.add.text(450, 700, '♀ MUJER', { fontSize: '50px', fill: '#f0f' }).setInteractive();
+    btnF.on('pointerdown', () => {
+        this.registry.set('p_frame', 4); // El cuadro donde empieza la mujer
+        this.scene.start('Game');
+    });
+};
 
-    create() {
-        this.add.image(400, 600, 'fondo').setDisplaySize(800, 1200);
+// --- ESCENA JUEGO ---
+function Game() {}
+Game.prototype = Object.create(Phaser.Scene.prototype);
+Game.prototype.constructor = Game;
+Phaser.Scene.call(Game, { key: 'Game' });
 
-        // Recuperamos la textura elegida
-        const texturaElegida = this.registry.get('p_textura');
-        
-        // Creamos al jugador
-        this.player = this.physics.add.sprite(400, 900, 'personajes');
-        // Aquí forzamos el cuadro inicial para que no se vea toda la hoja
-        this.player.setFrame(texturaElegida === 'player_m' ? 0 : 4); 
+Game.prototype.create = function() {
+    this.add.image(400, 600, 'fondo').setDisplaySize(800, 1200);
+    
+    // Creamos al personaje usando el cuadro elegido
+    let frame = this.registry.get('p_frame');
+    
+    // Como tu hoja es irregular, vamos a cargarla como spritesheet de 200x250 aprox
+    // Esto lo ajustaremos después si se ve cortado
+    this.player = this.physics.add.sprite(400, 900, 'personajes', frame);
+    this.player.setScale(1.5);
 
-        // --- ANIMACIÓN PROCEDURAL (El Latido que pediste) ---
-        this.tweens.add({
-            targets: this.player,
-            scaleX: 1.1,
-            scaleY: 0.9,
-            duration: 600,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+    // Animación de "Latido"
+    this.tweens.add({
+        targets: this.player,
+        scaleX: 1.6,
+        scaleY: 1.4,
+        duration: 800,
+        yoyo: true,
+        repeat: -1
+    });
 
-        this.cursors = this.input.keyboard.createCursorKeys();
-    }
+    this.cursors = this.input.keyboard.createCursorKeys();
+};
 
-    update() {
-        this.player.setVelocity(0);
-        if (this.cursors.left.isDown) this.player.setVelocityX(-300);
-        if (this.cursors.right.isDown) this.player.setVelocityX(300);
-        if (this.cursors.up.isDown) this.player.setVelocityY(-300);
-        if (this.cursors.down.isDown) this.player.setVelocityY(300);
-    }
-}
+Game.prototype.update = function() {
+    this.player.setVelocity(0);
+    if (this.cursors.left.isDown) this.player.setVelocityX(-300);
+    if (this.cursors.right.isDown) this.player.setVelocityX(300);
+    if (this.cursors.up.isDown) this.player.setVelocityY(-300);
+    if (this.cursors.down.isDown) this.player.setVelocityY(300);
+};
+</script>
+
+</body>
+</html>
