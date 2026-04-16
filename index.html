@@ -3,132 +3,529 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - Edición Neón</title>
+    <title>WaterWorld — Por el Agua</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* ========== PANTALLA DE INICIO ========== */
         #ui-inicio {
-            position: absolute; width: 100%; height: 100%;
-            background: radial-gradient(circle, #0a1422 0%, #000 100%);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 2000; color: white;
+            position: fixed; inset: 0; z-index: 9999;
+            background: radial-gradient(ellipse at 50% 30%, #0a1f38 0%, #040d1a 60%, #000 100%);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 28px;
+            color: white;
         }
-        .logo { font-size: 3rem; color: #ff00ff; text-shadow: 0 0 15px #ff00ff; margin-bottom: 20px; font-weight: bold; }
-        .btn-neon {
-            padding: 15px 30px; font-size: 18px; color: #0ff; border: 2px solid #0ff;
-            background: transparent; cursor: pointer; text-shadow: 0 0 5px #0ff;
-            box-shadow: 0 0 10px #0ff; border-radius: 10px; margin: 10px;
+
+        /* Scanline overlay */
+        #ui-inicio::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px);
+            pointer-events: none;
         }
+
+        .logo-wrap { text-align: center; }
+        .logo {
+            font-size: clamp(2.8rem, 10vw, 4.5rem);
+            font-weight: 900;
+            color: #ff00ff;
+            text-shadow: 0 0 15px #ff00ff, 0 0 35px #ff00ff88, 0 0 60px #ff00ff44;
+            letter-spacing: 8px;
+            animation: logoGlow 2.5s ease-in-out infinite;
+        }
+        @keyframes logoGlow {
+            0%, 100% { text-shadow: 0 0 15px #ff00ff, 0 0 35px #ff00ff88; }
+            50% { text-shadow: 0 0 25px #ff00ff, 0 0 55px #ff00ffaa, 0 0 90px #ff00ff44; }
+        }
+        .logo-sub {
+            font-size: 0.9rem; color: #00dbff; letter-spacing: 5px;
+            text-transform: uppercase; margin-top: 6px; opacity: 0.8;
+        }
+
+        .field-label {
+            font-size: 0.65rem; color: #556677; letter-spacing: 4px;
+            text-transform: uppercase; margin-bottom: 8px; text-align: center;
+        }
+
+        #playerInitials {
+            background: rgba(0,0,0,0.7);
+            border: 2px solid #00dbff;
+            color: #00dbff;
+            font-size: 2rem;
+            padding: 10px 24px;
+            width: 150px;
+            text-align: center;
+            outline: none;
+            border-radius: 10px;
+            box-shadow: 0 0 18px rgba(0,219,255,0.3), inset 0 0 10px rgba(0,219,255,0.05);
+            letter-spacing: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-family: 'Courier New', monospace;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        #playerInitials:focus {
+            border-color: #ff00ff;
+            box-shadow: 0 0 18px rgba(255,0,255,0.4);
+        }
+        #playerInitials.error { border-color: #ff3333; box-shadow: 0 0 18px rgba(255,50,50,0.4); }
+
+        /* ── Character Select ── */
+        .char-select { display: flex; gap: 18px; }
+        .char-btn {
+            background: rgba(0,0,0,0.6);
+            border: 3px solid #223344;
+            border-radius: 16px;
+            padding: 18px 28px;
+            color: #445566;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 10px;
+            min-width: 120px;
+            letter-spacing: 2px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .char-btn .avatar { font-size: 2.8rem; transition: transform 0.2s; }
+        .char-btn:active .avatar { transform: scale(0.9); }
+        .char-btn.active-m {
+            border-color: #00dbff; color: #00dbff;
+            box-shadow: 0 0 22px rgba(0,219,255,0.45);
+            background: rgba(0,219,255,0.08);
+        }
+        .char-btn.active-m .avatar { filter: drop-shadow(0 0 8px #00dbff); }
+        .char-btn.active-f {
+            border-color: #ff00ff; color: #ff00ff;
+            box-shadow: 0 0 22px rgba(255,0,255,0.45);
+            background: rgba(255,0,255,0.08);
+        }
+        .char-btn.active-f .avatar { filter: drop-shadow(0 0 8px #ff00ff); }
+
+        /* ── Start Button ── */
+        #btnStart {
+            background: linear-gradient(135deg, #ff00ff 0%, #cc00cc 100%);
+            border: none; border-radius: 50px;
+            color: white; padding: 18px 55px;
+            font-size: 1.15rem; font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 0 28px #ff00ff77, 0 4px 20px rgba(0,0,0,0.5);
+            letter-spacing: 4px;
+            transition: all 0.18s;
+            text-transform: uppercase;
+            font-family: 'Courier New', monospace;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #btnStart:hover { transform: scale(1.06); filter: brightness(1.15); }
+        #btnStart:active { transform: scale(0.97); }
+
+        /* ========== OVERLAYS ========== */
+        .game-overlay {
+            display: none; position: fixed; inset: 0; z-index: 8888;
+            background: rgba(0,0,0,0.88);
+            flex-direction: column; align-items: center; justify-content: center;
+            color: white; text-align: center; gap: 18px;
+        }
+        .game-overlay.show { display: flex; }
+        .ov-title { font-size: clamp(2rem, 8vw, 3rem); font-weight: 900; letter-spacing: 4px; }
+        .ov-score { font-size: 1.4rem; color: #00dbff; font-weight: bold; }
+        .ov-sub { color: #556677; font-size: 0.9rem; letter-spacing: 2px; }
+        .ov-btn {
+            background: #ff00ff; border: none; border-radius: 50px;
+            color: white; padding: 15px 44px; font-size: 1rem;
+            font-weight: bold; cursor: pointer; margin-top: 8px;
+            letter-spacing: 3px; font-family: 'Courier New', monospace;
+            box-shadow: 0 0 20px #ff00ff66;
+        }
+        .ov-btn:hover { filter: brightness(1.2); transform: scale(1.05); }
     </style>
 </head>
 <body>
 
-    <div id="ui-inicio">
+<!-- ============ PANTALLA TÍTULO ============ -->
+<div id="ui-inicio">
+    <div class="logo-wrap">
         <div class="logo">WATERWORLD</div>
-        <div id="botones">
-            <button class="btn-neon" onclick="empezar('h')">I.D. HOMBRE</button>
-            <button class="btn-neon" onclick="empezar('m')" style="color:#f0f; border-color:#f0f;">I.D. MUJER</button>
+        <div class="logo-sub">🌊 — Por el Agua — 🌊</div>
+    </div>
+
+    <div>
+        <div class="field-label">Iniciales del jugador</div>
+        <input type="text" id="playerInitials" maxlength="3" placeholder="AAA" autocomplete="off" spellcheck="false">
+    </div>
+
+    <div>
+        <div class="field-label" style="text-align:center">Elige tu personaje</div>
+        <div class="char-select">
+            <div class="char-btn active-m" id="charM" onclick="selectChar('M')">
+                <span class="avatar">👨‍💼</span>
+                <span>HOMBRE</span>
+            </div>
+            <div class="char-btn" id="charF" onclick="selectChar('F')">
+                <span class="avatar">👩‍💼</span>
+                <span>MUJER</span>
+            </div>
         </div>
     </div>
 
-    <div id="game-container"></div>
+    <button id="btnStart">⚡ ACCEDER ⚡</button>
+</div>
+
+<!-- ============ GAME OVER ============ -->
+<div class="game-overlay" id="overlay-gameover">
+    <div class="ov-title" style="color:#ff4444">💀 CARBONIZADO 💀</div>
+    <div class="ov-score" id="go-score">— FGT: 0 pts —</div>
+    <div class="ov-sub">NO HAS SOBREVIVIDO A LA JORNADA NUCLEAR</div>
+    <button class="ov-btn" onclick="location.reload()">🔄 REINTENTAR</button>
+</div>
+
+<!-- ============ VICTORIA ============ -->
+<div class="game-overlay" id="overlay-win">
+    <div class="ov-title" style="color:#00ff99">🏆 ¡JORNADA SUPERADA!</div>
+    <div class="ov-score" id="win-score">— FGT: 0 pts —</div>
+    <div class="ov-sub">HAS SOBREVIVIDO A LA OFICINA NUCLEAR SUBMARINA</div>
+    <button class="ov-btn" onclick="location.reload()">🌊 SIGUIENTE NIVEL</button>
+</div>
 
 <script>
-let prefijo = 'h'; // 'h' para hombre, 'm' para mujer
+/* =============================================================
+   ESTADO GLOBAL
+   ============================================================= */
+const G = {
+    initials: 'AAA',
+    gender: 'M',   // 'M' = hombre | 'F' = mujer
+    lives: 3,
+    score: 0
+};
 
-function empezar(genero) {
-    prefijo = genero;
-    document.getElementById('ui-inicio').style.display = 'none';
-    lanzarJuego();
+/* ── Character Selection ── */
+function selectChar(g) {
+    G.gender = g;
+    document.getElementById('charM').className = 'char-btn' + (g === 'M' ? ' active-m' : '');
+    document.getElementById('charF').className = 'char-btn' + (g === 'F' ? ' active-f' : '');
 }
 
-function lanzarJuego() {
-    const config = {
+/* =============================================================
+   ESCENA: OFICINA NUCLEAR
+   ─────────────────────────────────────────────────────────────
+   Spritesheet layout estimado (personaje.png):
+     ┌──────────────────────────────────────┐
+     │  Fila 0: Hombre caminando  [0,1,2,3] │
+     │  Fila 1: Mujer  caminando  [4,5,6,7] │
+     │  Fila 2: Asustados/muertos [8,9,10,11]│
+     │  Fila 3: Esqueleto        [12,13,14,15]│
+     └──────────────────────────────────────┘
+   ⚠️  Si los sprites salen mal ajusta:
+       FRAME_W  y  FRAME_H  abajo
+   ============================================================= */
+const FRAME_W = 170;   // ← AJUSTAR según personaje.png real
+const FRAME_H = 195;   // ← AJUSTAR según personaje.png real
+
+class OficinaScene extends Phaser.Scene {
+    constructor() { super({ key: 'OficinaScene' }); }
+
+    /* ── PRELOAD ─────────────────────────────────────────────── */
+    preload() {
+        this.load.image('fondo', 'fondo.png');
+        this.load.spritesheet('pj', 'personaje.png', {
+            frameWidth:  FRAME_W,
+            frameHeight: FRAME_H
+        });
+    }
+
+    /* ── CREATE ──────────────────────────────────────────────── */
+    create() {
+        const W = this.scale.width;
+        const H = this.scale.height;
+
+        // Posiciones fijas (calibradas para fondo.png)
+        this.POS_OFICINA = H * 0.41;   // nivel escritorios (zona peligrosa)
+        this.POS_REFUGIO = H * 0.84;   // nivel compuerta bunker (zona segura)
+
+        // Estado del juego
+        this.vidas        = 3;
+        this.puntos       = 0;
+        this.segundos     = 7 * 60;    // 7 minutos de juego ~ 7 horas de trabajo
+        this.enRefugio    = false;
+        this.muerto       = false;
+        this.finPartida   = false;
+        this.avisando     = false;
+        this.estornudos   = 0;         // cuenta de estornudos superados
+
+        // ── Fondo ──────────────────────────────────────────────
+        this.add.image(W/2, H/2, 'fondo').setDisplaySize(W, H).setDepth(0);
+
+        // ── Animaciones ────────────────────────────────────────
+        this._crearAnimaciones();
+
+        // ── NPC compañero estornudador ──────────────────────────
+        // Lo situamos en el escritorio opuesto al jugador
+        this.npc = this.add.sprite(W * 0.26, this.POS_OFICINA - 8, 'pj').setDepth(5).setScale(1.2);
+        this.npc.play(G.gender === 'M' ? 'walk_f' : 'walk_m');
+        this.npc.setFlipX(true);
+
+        // ── Jugador ─────────────────────────────────────────────
+        this.player = this.add.sprite(W * 0.62, this.POS_OFICINA, 'pj').setDepth(10).setScale(1.4);
+        this.player.play(G.gender === 'M' ? 'walk_m' : 'walk_f');
+
+        // ── Indicador de zona segura (zona bunker) ─────────────
+        this.txtRefugio = this.add.text(W/2, this.POS_REFUGIO - 65, '[ TAP → REFUGIO ]', {
+            fontSize: '17px', fill: '#00dbff',
+            fontStyle: 'bold', stroke: '#000', strokeThickness: 4
+        }).setOrigin(0.5).setDepth(15).setAlpha(0.6);
+        this.tweens.add({ targets: this.txtRefugio, alpha: 0.25, duration: 900, yoyo: true, repeat: -1 });
+
+        // ── Efecto nuclear (onda expansiva) ────────────────────
+        this.nuke = this.add.circle(W/2, H * 0.47, 0, 0xff6600, 0).setDepth(30);
+
+        // ── HUD superior ───────────────────────────────────────
+        this.add.rectangle(0, 0, W, 78, 0x000000, 0.88).setOrigin(0).setDepth(50);
+
+        this.txtHP    = this.add.text(18, 18, this._strVidas(), {
+            fontSize: '28px', fill: '#ff4444', fontStyle: 'bold'
+        }).setDepth(51);
+
+        this.txtClock = this.add.text(W - 18, 18, this._strReloj(), {
+            fontSize: '24px', fill: '#ff00ff', fontStyle: 'bold'
+        }).setOrigin(1, 0).setDepth(51);
+
+        this.txtPuntos = this.add.text(W/2, 20, `${G.initials}: 0`, {
+            fontSize: '22px', fill: '#00dbff', fontStyle: 'bold'
+        }).setOrigin(0.5, 0).setDepth(51);
+
+        // ── Controles ──────────────────────────────────────────
+        this.input.on('pointerdown', () => this._tap());
+
+        // ── Iniciar lógica ─────────────────────────────────────
+        this._programarEstornudo();
+    }
+
+    /* ── ANIMACIONES ────────────────────────────────────────── */
+    _crearAnimaciones() {
+        const def = (k, start, end, rate = 8) => {
+            if (!this.anims.exists(k))
+                this.anims.create({ key: k, frames: this.anims.generateFrameNumbers('pj', { start, end }), frameRate: rate, repeat: -1 });
+        };
+        def('walk_m',   0,  3);
+        def('walk_f',   4,  7);
+        def('scared_m', 8,  9,  6);
+        def('scared_f', 9, 10,  6);
+        def('skeleton', 12, 15, 10);
+    }
+
+    /* ── PROGRAMAR PRÓXIMO ESTORNUDO ────────────────────────── */
+    _programarEstornudo() {
+        if (this.finPartida) return;
+        // Delay aleatorio entre 4-9 s (se reduce ligeramente con el tiempo)
+        const delay = Phaser.Math.Between(4000, 9000);
+        this.time.delayedCall(delay, () => { if (!this.finPartida) this._aviso(); });
+    }
+
+    /* ── FASE 1: AVISO DE ESTORNUDO ─────────────────────────── */
+    _aviso() {
+        if (this.finPartida) return;
+        this.avisando = true;
+        const W = this.scale.width;
+        const H = this.scale.height;
+
+        // Animación NPC (sacudida de alerta)
+        this.tweens.add({ targets: this.npc, angle: 14, duration: 70, yoyo: true, repeat: 7 });
+
+        // Texto de advertencia
+        this.warnTxt = this.add.text(W/2, H * 0.14, '⚠️  ¡ACHÍS!', {
+            fontSize: '62px', fill: '#ffff00',
+            fontStyle: 'bold', stroke: '#ff00ff', strokeThickness: 9
+        }).setOrigin(0.5).setDepth(60);
+
+        // Barra de peligro (countdown visual)
+        const bW = W * 0.72, bY = H * 0.22;
+        this.barraBg  = this.add.rectangle(W/2, bY, bW, 22, 0x222222, 0.9).setDepth(60);
+        this.barraFg  = this.add.rectangle(W/2 - bW/2, bY, bW, 22, 0xff2200).setOrigin(0, 0.5).setDepth(61);
+
+        // La barra se vacía en 1.6 segundos
+        this.tweens.add({
+            targets: this.barraFg, scaleX: 0,
+            duration: 1600, ease: 'Linear',
+            onComplete: () => this._detonar()
+        });
+
+        // Parpadeo rojo de fondo
+        let flash = 0;
+        this.flashEvent = this.time.addEvent({
+            delay: 180, repeat: 8,
+            callback: () => {
+                this.cameras.main.setBackgroundColor(flash++ % 2 === 0 ? '#1a0000' : '#000000');
+            }
+        });
+    }
+
+    /* ── FASE 2: DETONACIÓN NUCLEAR ─────────────────────────── */
+    _detonar() {
+        if (this.finPartida) return;
+        this.avisando = false;
+
+        // Limpiar UI de aviso
+        [this.warnTxt, this.barraBg, this.barraFg].forEach(o => { if (o) o.destroy(); });
+
+        // Efectos de cámara
+        this.cameras.main.flash(600, 255, 140, 0);
+        this.cameras.main.shake(700, 0.028);
+
+        // Onda expansiva
+        this.nuke.setRadius(6).setAlpha(0.75);
+        this.tweens.add({ targets: this.nuke, radius: 1000, alpha: 0, duration: 850 });
+
+        if (!this.enRefugio) {
+            // ── DAÑO ──────────────────────────────────────────
+            this.vidas--;
+            this.txtHP.setText(this._strVidas());
+
+            this.cameras.main.setBackgroundColor('#220000');
+            this.time.delayedCall(700, () => { if (this.cameras?.main) this.cameras.main.setBackgroundColor('#000000'); });
+
+            this.player.setTint(0xff3300);
+            this.time.delayedCall(600, () => { if (this.player) this.player.clearTint(); });
+
+            // Animación de daño
+            this.tweens.add({ targets: this.player, angle: 15, duration: 80, yoyo: true, repeat: 4 });
+
+            if (this.vidas <= 0) { this._gameOver(); return; }
+
+        } else {
+            // ── SOBREVIVES ────────────────────────────────────
+            this.estornudos++;
+            this.puntos += 100 * this.estornudos;
+            this.txtPuntos.setText(`${G.initials}: ${this.puntos}`);
+
+            // NPC carbonizado
+            this.npc.setTint(0x111111);
+            this.time.delayedCall(900, () => { if (this.npc) this.npc.clearTint(); });
+
+            // Texto "+pts" flotante
+            const pts = this.add.text(this.player.x, this.player.y - 40, `+${100 * this.estornudos}`, {
+                fontSize: '28px', fill: '#00ff88', fontStyle: 'bold', stroke: '#000', strokeThickness: 4
+            }).setOrigin(0.5).setDepth(70);
+            this.tweens.add({ targets: pts, y: pts.y - 70, alpha: 0, duration: 1200, onComplete: () => pts.destroy() });
+        }
+
+        this._programarEstornudo();
+    }
+
+    /* ── TAP: MOVER ENTRE OFICINA Y REFUGIO ─────────────────── */
+    _tap() {
+        if (this.muerto || this.finPartida) return;
+        this.enRefugio = !this.enRefugio;
+
+        const destY = this.enRefugio ? this.POS_REFUGIO : this.POS_OFICINA;
+        this.player.setFlipX(this.enRefugio);
+
+        this.tweens.add({
+            targets: this.player, y: destY,
+            duration: 380, ease: 'Back.easeOut'
+        });
+
+        // Icono de estado al moverse
+        const icono = this.add.text(this.player.x, destY - 80,
+            this.enRefugio ? '🛡️' : '💼',
+            { fontSize: '30px' }
+        ).setOrigin(0.5).setDepth(70);
+        this.tweens.add({ targets: icono, y: icono.y - 50, alpha: 0, duration: 900, onComplete: () => icono.destroy() });
+    }
+
+    /* ── GAME OVER ──────────────────────────────────────────── */
+    _gameOver() {
+        this.finPartida = true;
+        this.muerto     = true;
+
+        this.player.play('skeleton');
+        this.tweens.add({ targets: this.player, angle: 90, alpha: 0.65, y: this.player.y + 30, duration: 1400 });
+
+        this.time.delayedCall(2200, () => {
+            document.getElementById('go-score').textContent = `— ${G.initials}: ${this.puntos} puntos —`;
+            document.getElementById('overlay-gameover').classList.add('show');
+        });
+    }
+
+    /* ── VICTORIA ───────────────────────────────────────────── */
+    _victoria() {
+        this.finPartida = true;
+        this.puntos += this.vidas * 500;   // bonus por vidas restantes
+
+        // Animación de celebración
+        this.tweens.add({ targets: this.player, y: this.player.y - 40, duration: 300, yoyo: true, repeat: 3 });
+
+        this.time.delayedCall(1600, () => {
+            document.getElementById('win-score').textContent = `— ${G.initials}: ${this.puntos} puntos —`;
+            document.getElementById('overlay-win').classList.add('show');
+        });
+    }
+
+    /* ── HELPERS ────────────────────────────────────────────── */
+    _strVidas() {
+        return '❤️'.repeat(Math.max(0, this.vidas)) + '🖤'.repeat(Math.max(0, 3 - this.vidas));
+    }
+
+    _strReloj() {
+        const t = Math.max(0, Math.ceil(this.segundos));
+        const h = Math.floor(t / 60), m = t % 60;
+        return `${h}h ${m < 10 ? '0' + m : m}m`;
+    }
+
+    /* ── UPDATE: RELOJ + WIN CHECK ──────────────────────────── */
+    update(_, delta) {
+        if (this.finPartida) return;
+        this.segundos -= delta / 1000;
+        this.txtClock.setText(this._strReloj());
+        if (this.segundos <= 0) this._victoria();
+    }
+}
+
+/* =============================================================
+   LANZAR JUEGO
+   ============================================================= */
+const inputEl = document.getElementById('playerInitials');
+
+inputEl.addEventListener('input', function () {
+    this.value = this.value.toUpperCase().replace(/[^A-Z]/g, '');
+    this.classList.remove('error');
+    G.initials = this.value || 'AAA';
+});
+
+document.getElementById('btnStart').addEventListener('click', () => {
+    const val = inputEl.value.trim().toUpperCase();
+    if (!val) {
+        inputEl.classList.add('error');
+        inputEl.focus();
+        return;
+    }
+    G.initials = val;
+    document.getElementById('ui-inicio').style.display = 'none';
+
+    new Phaser.Game({
         type: Phaser.AUTO,
         width: 800,
         height: 1200,
-        parent: 'game-container',
-        scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-        physics: { default: 'arcade' },
-        scene: { preload: preload, create: create, update: update }
-    };
-    new Phaser.Game(config);
-}
-
-function preload() {
-    // Fondo (JPG según tus archivos anteriores)
-    this.load.image('fondo', 'fondo.jpg');
-    
-    // Cargamos tus nuevos PNGs individuales
-    // HOMBRE
-    this.load.image('h_normal', 'personajeh.png');
-    this.load.image('h_alerta', 'personajeha.png');
-    this.load.image('h_muerto', 'personajehm.png');
-    // MUJER
-    this.load.image('m_normal', 'personajem.png');
-    this.load.image('m_alerta', 'personajema.png');
-    this.load.image('m_muerto', 'personajemm.png');
-
-    this.load.on('loaderror', (file) => console.error("Falta el archivo:", file.src));
-}
-
-function create() {
-    const { width, height } = this.scale;
-    this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height);
-
-    // Creamos al jugador con la imagen normal del género elegido
-    this.player = this.add.sprite(width/2, height * 0.45, prefijo + '_normal');
-    this.player.setScale(1.5);
-
-    // --- ANIMACIÓN DE LATIDO ---
-    this.tweens.add({
-        targets: this.player,
-        scaleX: 1.6,
-        scaleY: 1.4,
-        duration: 900,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut'
-    });
-
-    // --- LÓGICA DE MOVIMIENTO ---
-    this.isSafe = false;
-    this.input.on('pointerdown', () => {
-        this.isSafe = !this.isSafe;
-        this.tweens.add({
-            targets: this.player,
-            y: this.isSafe ? height * 0.85 : height * 0.45,
-            duration: 600,
-            ease: 'Power2'
-        });
-    });
-
-    // --- CICLO ACHÍS ---
-    this.time.addEvent({
-        delay: 5000,
-        callback: () => {
-            // Cambia a imagen de ALERTA
-            this.player.setTexture(prefijo + '_alerta');
-            this.cameras.main.shake(500, 0.01);
-            
-            this.time.delayedCall(1500, () => {
-                if (!this.isSafe) {
-                    // MUERTE: Cambia a imagen de MUERTO
-                    this.player.setTexture(prefijo + '_muerto');
-                    this.cameras.main.flash(500, 255, 0, 0);
-                    alert("ERROR DE SISTEMA: No llegaste al refugio.");
-                    location.reload();
-                } else {
-                    // Vuelve a la normalidad si se salvó
-                    this.player.setTexture(prefijo + '_normal');
-                }
-            });
+        backgroundColor: '#000000',
+        scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH
         },
-        loop: true
+        scene: [OficinaScene]
     });
-}
-
-function update() {}
+});
 </script>
 </body>
 </html>
