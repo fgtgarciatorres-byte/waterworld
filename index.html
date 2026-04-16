@@ -3,48 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - Neón Submarino</title>
+    <title>WaterWorld - Edición Neón</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', Courier, monospace; }
+        body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
         #ui-inicio {
             position: absolute; width: 100%; height: 100%;
-            background: radial-gradient(circle, #0a1422 0%, #000 100%);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 2000; color: white; text-align: center;
+            background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 2000; color: #0ff; text-align: center; border: 5px solid #0ff;
         }
         .btn-neon {
-            padding: 15px 30px; margin: 10px; font-size: 20px; color: #0ff; border: 2px solid #0ff;
-            background: transparent; cursor: pointer; text-shadow: 0 0 10px #0ff;
-            box-shadow: 0 0 15px #0ff; border-radius: 10px; transition: 0.3s;
+            padding: 20px 40px; font-size: 24px; color: #fff; border: 3px solid #f0f;
+            background: #000; cursor: pointer; box-shadow: 0 0 20px #f0f; border-radius: 15px; margin: 10px;
         }
-        .btn-neon:hover { background: #0ff; color: #000; }
     </style>
 </head>
 <body>
 
     <div id="ui-inicio">
-        <h1 style="color: #ff00ff; text-shadow: 0 0 20px #ff00ff; font-size: 50px;">WATERWORLD</h1>
-        <p>CONECTANDO I.D. SUBMARINA...</p>
-        <div>
-            <button class="btn-neon" onclick="empezar('h')">HOMBRE</button>
-            <button class="btn-neon" onclick="empezar('m')" style="color:#f0f; border-color:#f0f; box-shadow: 0 0 15px #f0f;">MUJER</button>
-        </div>
+        <h1 style="font-size: 50px; text-shadow: 0 0 20px #0ff;">WATERWORLD</h1>
+        <p>SELECCIONA GÉNERO PARA CARGAR DATOS:</p>
+        <button class="btn-neon" onclick="iniciar('h')">HOMBRE</button>
+        <button class="btn-neon" onclick="iniciar('m')" style="box-shadow: 0 0 20px #0ff; border-color: #0ff;">MUJER</button>
+        <p id="status" style="font-size: 12px; color: #555; margin-top: 20px;">Esperando selección...</p>
     </div>
 
     <div id="game-container"></div>
 
 <script>
-let generoSel = 'h';
+let config;
+let prefijo = 'h';
 
-function empezar(g) {
-    generoSel = g;
+function iniciar(g) {
+    prefijo = g;
     document.getElementById('ui-inicio').style.display = 'none';
-    lanzarJuego();
-}
-
-function lanzarJuego() {
-    const config = {
+    
+    config = {
         type: Phaser.AUTO,
         width: 800,
         height: 1200,
@@ -57,88 +51,103 @@ function lanzarJuego() {
 }
 
 function preload() {
-    // Assets de Fondo y Búnker
-    this.load.image('fondo', 'fondo.jpg');
-    this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
+    // CARGA CON RUTA RELATIVA FORZADA (./)
+    // Fondo
+    this.load.image('fondo', './fondo.jpg');
+    this.load.image('bunker', './WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
     
-    // Personajes Individuales (Tus nuevos PNGs)
-    this.load.image('h_norm', 'personajeh.png');
-    this.load.image('h_alert', 'personajeha.png');
-    this.load.image('h_dead', 'personajehm.png');
-    this.load.image('m_norm', 'personajem.png');
-    this.load.image('m_alert', 'personajema.png');
-    this.load.image('m_dead', 'personajemm.png');
+    // Personajes
+    this.load.image('h_norm', './personajeh.png');
+    this.load.image('h_alert', './personajeha.png');
+    this.load.image('h_dead', './personajehm.png');
+    this.load.image('m_norm', './personajem.png');
+    this.load.image('m_alert', './personajema.png');
+    this.load.image('m_dead', './personajemm.png');
 
-    // VIDEO DE EXPLOSIÓN
-    this.load.video('vid_explosion', 'explosion.mp4');
+    // Video (Si el video falla, el juego seguirá funcionando)
+    this.load.video('vid_explosion', './explosion.mp4');
+
+    // Debug en consola para ver qué falla exactamente
+    this.load.on('loaderror', (file) => {
+        console.warn("No se pudo cargar: " + file.src);
+    });
 }
 
 function create() {
     const { width, height } = this.scale;
-    this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height);
-    
-    this.bunker = this.physics.add.staticImage(width/2, height * 0.85, 'bunker').setScale(0.6);
-    
-    // Configuración inicial del personaje
-    let keyBase = generoSel === 'h' ? 'h_norm' : 'm_norm';
-    this.player = this.physics.add.sprite(width/2, height * 0.4, keyBase).setScale(1.8);
-    this.player.setCollideWorldBounds(true);
 
-    // Animación de "Latido" neón
+    // 1. FONDO (Con respaldo de color si falla la imagen)
+    this.add.rectangle(width/2, height/2, width, height, 0x000510); 
+    if (this.textures.exists('fondo')) {
+        this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height);
+    }
+
+    // 2. BÚNKER
+    this.bunker = this.physics.add.staticImage(width/2, height * 0.85, 'bunker').setScale(0.7);
+
+    // 3. JUGADOR
+    let texturaInicial = prefijo === 'h' ? 'h_norm' : 'm_norm';
+    this.player = this.physics.add.sprite(width/2, height * 0.4, texturaInicial);
+    this.player.setScale(2);
+
+    // Latido Neón
     this.tweens.add({
         targets: this.player,
-        scaleX: 2.0,
-        scaleY: 1.6,
-        duration: 1000,
+        scale: 2.3,
+        duration: 800,
         yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut'
+        repeat: -1
     });
 
-    // Control de movimiento (Click/Tap)
+    // 4. LÓGICA DE MOVIMIENTO
     this.isSafe = false;
     this.input.on('pointerdown', () => {
         this.isSafe = !this.isSafe;
         this.tweens.add({
             targets: this.player,
             y: this.isSafe ? height * 0.82 : height * 0.4,
-            duration: 500,
-            ease: 'Power2'
+            duration: 600,
+            ease: 'Cubic.easeOut'
         });
     });
 
-    // SISTEMA DE ALERTA Y EXPLOSIÓN
+    // 5. CICLO DE ALERTA
     this.time.addEvent({
-        delay: 6000,
+        delay: 7000,
         loop: true,
         callback: () => {
-            // Cambio a estado ALERTA
-            this.player.setTexture(generoSel === 'h' ? 'h_alert' : 'm_alert');
+            // Cambiar a sprite de ALERTA
+            this.player.setTexture(prefijo === 'h' ? 'h_alert' : 'm_alert');
             this.cameras.main.shake(500, 0.01);
-            
+
             this.time.delayedCall(2000, () => {
                 if (!this.isSafe) {
-                    this.ejecutarMuerte();
+                    this.morir();
                 } else {
-                    this.player.setTexture(generoSel === 'h' ? 'h_norm' : 'm_norm');
+                    this.player.setTexture(prefijo === 'h' ? 'h_norm' : 'm_norm');
                 }
             });
         }
     });
 }
 
-function ejecutarMuerte() {
-    // 1. Cambiar imagen a MUERTO
-    this.player.setTexture(generoSel === 'h' ? 'h_dead' : 'm_dead');
-    
-    // 2. Reproducir VIDEO de explosión encima
-    let vid = this.add.video(this.player.x, this.player.y, 'vid_explosion').setScale(2);
-    vid.play();
-    
+function morir() {
+    // Cambiar a sprite de MUERTE
+    this.player.setTexture(prefijo === 'h' ? 'h_dead' : 'm_dead');
     this.cameras.main.flash(500, 255, 0, 0);
-    
-    this.time.delayedCall(2000, () => {
-        alert("SISTEMA DESTRUIDO");
+
+    // INTENTAR REPRODUCIR VIDEO
+    try {
+        let video = this.add.video(400, 600, 'vid_explosion').setScale(2);
+        video.play();
+        video.on('complete', () => location.reload());
+    } catch (e) {
+        console.error("Video falló, usando fallback");
+    }
+
+    // Si el video no funciona, recargar tras 3 segundos de todos modos
+    this.time.delayedCall(3000, () => {
+        alert("GAME OVER - SISTEMA DESTRUIDO");
         location.reload();
     });
 }
