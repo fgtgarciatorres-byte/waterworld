@@ -2,112 +2,120 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WaterWorld - Edición Neón</title>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background-color: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
+        body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
+        #ui-inicio {
+            position: absolute; width: 100%; height: 100%;
+            background: radial-gradient(circle, #0a1422 0%, #000 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 2000; color: white;
+        }
+        .btn-neon {
+            padding: 15px 30px; font-size: 20px; color: #0ff; border: 2px solid #0ff;
+            background: transparent; cursor: pointer; text-shadow: 0 0 10px #0ff;
+            box-shadow: 0 0 15px #0ff; border-radius: 10px; transition: 0.3s;
+        }
+        .btn-neon:hover { background: #0ff; color: #000; }
     </style>
 </head>
 <body>
 
-<div id="game-container"></div>
+    <div id="ui-inicio">
+        <h1 style="color: #ff00ff; text-shadow: 0 0 20px #ff00ff; font-size: 50px;">WATERWORLD</h1>
+        <button class="btn-neon" onclick="empezarJuego()">CONECTAR I.D.</button>
+    </div>
+
+    <div id="game-container"></div>
 
 <script>
-// AQUÍ VA EL CÓDIGO QUE TE PASÉ
-const config = {
-    type: Phaser.AUTO,
-    width: 800,
-    height: 1200,
-    parent: 'game-container',
-    physics: {
-        default: 'arcade',
-        arcade: { gravity: { y: 0 } }
-    },
-    scene: [Boot, MainMenu, Game]
-};
+let game;
 
-const game = new Phaser.Game(config);
+function empezarJuego() {
+    document.getElementById('ui-inicio').style.display = 'none';
+    const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 1200,
+        parent: 'game-container',
+        physics: { default: 'arcade', arcade: { gravity: { y: 0 } } },
+        scene: { preload: preload, create: create, update: update }
+    };
+    game = new Phaser.Game(config);
+}
 
-function Boot() {}
-Boot.prototype = Object.create(Phaser.Scene.prototype);
-Boot.prototype.constructor = Boot;
-Phaser.Scene.call(Boot, { key: 'Boot' });
+function preload() {
+    // Asegúrate de que estos nombres sean exactos en tu GitHub
+    this.load.image('fondo', 'fondo.jpg');
+    this.load.image('personaje', 'personaje.jpg');
+    this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg'); 
+}
 
-Boot.prototype.preload = function() {
-    // Asegúrate de que los nombres coincidan con tus archivos en GitHub
-    this.load.image('fondo', 'fondo.jpg'); 
-    this.load.image('personajes', 'personaje.jpg'); 
-};
-
-Boot.prototype.create = function() {
-    this.scene.start('MainMenu');
-};
-
-// --- ESCENA MENÚ ---
-function MainMenu() {}
-MainMenu.prototype = Object.create(Phaser.Scene.prototype);
-MainMenu.prototype.constructor = MainMenu;
-Phaser.Scene.call(MainMenu, { key: 'MainMenu' });
-
-MainMenu.prototype.create = function() {
-    this.add.image(400, 600, 'fondo').setDisplaySize(800, 1200).setAlpha(0.6);
-    this.add.text(400, 300, 'WATERWORLD', { fontSize: '80px', fill: '#0ff', fontStyle: 'bold' }).setOrigin(0.5);
-    this.add.text(400, 500, 'ELIGE PERSONAJE', { fontSize: '40px', fill: '#fff' }).setOrigin(0.5);
-
-    // Botones con los personajes de tu hoja
-    let btnM = this.add.text(250, 700, '♂ HOMBRE', { fontSize: '50px', fill: '#0ff' }).setInteractive();
-    btnM.on('pointerdown', () => {
-        this.registry.set('p_frame', 0); // El primer cuadro de tu imagen
-        this.scene.start('Game');
-    });
-
-    let btnF = this.add.text(450, 700, '♀ MUJER', { fontSize: '50px', fill: '#f0f' }).setInteractive();
-    btnF.on('pointerdown', () => {
-        this.registry.set('p_frame', 4); // El cuadro donde empieza la mujer
-        this.scene.start('Game');
-    });
-};
-
-// --- ESCENA JUEGO ---
-function Game() {}
-Game.prototype = Object.create(Phaser.Scene.prototype);
-Game.prototype.constructor = Game;
-Phaser.Scene.call(Game, { key: 'Game' });
-
-Game.prototype.create = function() {
+function create() {
+    // 1. Fondo
     this.add.image(400, 600, 'fondo').setDisplaySize(800, 1200);
-    
-    // Creamos al personaje usando el cuadro elegido
-    let frame = this.registry.get('p_frame');
-    
-    // Como tu hoja es irregular, vamos a cargarla como spritesheet de 200x250 aprox
-    // Esto lo ajustaremos después si se ve cortado
-    this.player = this.physics.add.sprite(400, 900, 'personajes', frame);
-    this.player.setScale(1.5);
 
-    // Animación de "Latido"
+    // 2. Búnker (Zona segura)
+    this.bunker = this.physics.add.staticImage(400, 150, 'bunker').setScale(0.5);
+    
+    // 3. Personaje (Recortamos solo el primer cuadro para evitar el error de la hoja entera)
+    // Usamos setCrop para mostrar solo una parte de la imagen 'personaje.jpg'
+    this.player = this.physics.add.sprite(400, 1000, 'personaje');
+    this.player.setCrop(0, 0, 250, 300); // Ajusta estos valores según tu dibujo
+    this.player.setCollideWorldBounds(true);
+
+    // 4. Animación de Latido (Procedural)
     this.tweens.add({
         targets: this.player,
-        scaleX: 1.6,
-        scaleY: 1.4,
+        scaleX: 1.1,
+        scaleY: 0.9,
         duration: 800,
         yoyo: true,
-        repeat: -1
+        repeat: -1,
+        ease: 'Sine.easeInOut'
     });
 
+    // 5. Lógica del "Achís" (Explosión)
+    this.isSafe = false;
+    this.time.addEvent({
+        delay: 5000,
+        callback: () => {
+            this.cameras.main.shake(200, 0.05);
+            this.add.text(400, 400, "¡ACHÍS!", { fontSize: '100px', fill: '#ff0' }).setOrigin(0.5);
+            
+            this.time.delayedCall(1000, () => {
+                if (!this.isSafe) {
+                    this.cameras.main.flash(500, 255, 0, 0); // Flash rojo de muerte
+                    this.player.setTint(0xff0000);
+                    alert("GAME OVER - No llegaste al refugio");
+                    location.reload();
+                }
+            });
+        },
+        loop: true
+    });
+
+    // 6. Colisión con Búnker
+    this.physics.add.overlap(this.player, this.bunker, () => {
+        this.isSafe = true;
+        this.player.setAlpha(0.7); // Efecto de estar "dentro"
+    }, null, this);
+
     this.cursors = this.input.keyboard.createCursorKeys();
-};
+}
 
-Game.prototype.update = function() {
+function update() {
     this.player.setVelocity(0);
-    if (this.cursors.left.isDown) this.player.setVelocityX(-300);
-    if (this.cursors.right.isDown) this.player.setVelocityX(300);
-    if (this.cursors.up.isDown) this.player.setVelocityY(-300);
-    if (this.cursors.down.isDown) this.player.setVelocityY(300);
-};
-</script>
+    this.isSafe = false; // Reset cada frame a menos que esté tocando el búnker
 
+    if (this.cursors.left.isDown) this.player.setVelocityX(-400);
+    else if (this.cursors.right.isDown) this.player.setVelocityX(400);
+
+    if (this.cursors.up.isDown) this.player.setVelocityY(-400);
+    else if (this.cursors.down.isDown) this.player.setVelocityY(400);
+}
+</script>
 </body>
 </html>
