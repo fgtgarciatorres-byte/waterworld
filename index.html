@@ -14,33 +14,30 @@
             z-index: 2000; color: white;
         }
         .logo { font-size: 3rem; color: #ff00ff; text-shadow: 0 0 15px #ff00ff; margin-bottom: 20px; font-weight: bold; }
-        .btn-container { display: flex; gap: 20px; }
         .btn-neon {
-            padding: 15px 25px; font-size: 18px; color: #0ff; border: 2px solid #0ff;
+            padding: 15px 30px; font-size: 18px; color: #0ff; border: 2px solid #0ff;
             background: transparent; cursor: pointer; text-shadow: 0 0 5px #0ff;
-            box-shadow: 0 0 10px #0ff; border-radius: 10px; transition: 0.3s;
+            box-shadow: 0 0 10px #0ff; border-radius: 10px; margin: 10px;
         }
-        .btn-neon:hover { background: #0ff; color: #000; }
     </style>
 </head>
 <body>
 
     <div id="ui-inicio">
         <div class="logo">WATERWORLD</div>
-        <p>SELECCIONA TU I.D. OPERATIVO</p>
-        <div class="btn-container">
-            <button class="btn-neon" onclick="iniciar('hombre')">HOMBRE</button>
-            <button class="btn-neon" onclick="iniciar('mujer')" style="color:#f0f; border-color:#f0f; box-shadow:0 0 10px #f0f;">MUJER</button>
+        <div id="botones">
+            <button class="btn-neon" onclick="empezar('h')">I.D. HOMBRE</button>
+            <button class="btn-neon" onclick="empezar('m')" style="color:#f0f; border-color:#f0f;">I.D. MUJER</button>
         </div>
     </div>
 
     <div id="game-container"></div>
 
 <script>
-let seleccion = 'hombre';
+let prefijo = 'h'; // 'h' para hombre, 'm' para mujer
 
-function iniciar(genero) {
-    seleccion = genero;
+function empezar(genero) {
+    prefijo = genero;
     document.getElementById('ui-inicio').style.display = 'none';
     lanzarJuego();
 }
@@ -59,70 +56,71 @@ function lanzarJuego() {
 }
 
 function preload() {
-    // IMPORTANTE: Extensiones corregidas a .jpg como tus archivos reales
-    this.load.image('fondo', 'fondo.jpg'); 
-    this.load.image('spritesheet', 'personaje.jpg');
+    // Fondo (JPG según tus archivos anteriores)
+    this.load.image('fondo', 'fondo.jpg');
+    
+    // Cargamos tus nuevos PNGs individuales
+    // HOMBRE
+    this.load.image('h_normal', 'personajeh.png');
+    this.load.image('h_alerta', 'personajeha.png');
+    this.load.image('h_muerto', 'personajehm.png');
+    // MUJER
+    this.load.image('m_normal', 'personajem.png');
+    this.load.image('m_alerta', 'personajema.png');
+    this.load.image('m_muerto', 'personajemm.png');
+
+    this.load.on('loaderror', (file) => console.error("Falta el archivo:", file.src));
 }
 
 function create() {
     const { width, height } = this.scale;
-
-    // 1. FONDO
     this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height);
 
-    // 2. JUGADOR (Recorte manual para evitar errores de spritesheet)
-    this.player = this.add.sprite(width/2, height * 0.45, 'spritesheet');
-    
-    // Si eliges mujer, recortamos la segunda fila de tu imagen personaje.jpg
-    if (seleccion === 'mujer') {
-        this.player.setCrop(0, 143, 250, 143); 
-    } else {
-        this.player.setCrop(0, 0, 250, 143); // Fila del hombre
-    }
+    // Creamos al jugador con la imagen normal del género elegido
+    this.player = this.add.sprite(width/2, height * 0.45, prefijo + '_normal');
     this.player.setScale(1.5);
 
-    // 3. ANIMACIÓN DE LATIDO (Tween procedural)
+    // --- ANIMACIÓN DE LATIDO ---
     this.tweens.add({
         targets: this.player,
-        scaleX: 1.7,
-        scaleY: 1.3,
+        scaleX: 1.6,
+        scaleY: 1.4,
         duration: 900,
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut'
     });
 
-    // 4. LÓGICA DE MOVIMIENTO
+    // --- LÓGICA DE MOVIMIENTO ---
     this.isSafe = false;
-    this.posOficina = height * 0.45;
-    this.posBunker = height * 0.85;
-
     this.input.on('pointerdown', () => {
         this.isSafe = !this.isSafe;
         this.tweens.add({
             targets: this.player,
-            y: this.isSafe ? this.posBunker : this.posOficina,
-            duration: 500,
+            y: this.isSafe ? height * 0.85 : height * 0.45,
+            duration: 600,
             ease: 'Power2'
         });
     });
 
-    // 5. CICLO DE ALERTA (Achís)
-    this.alertaTexto = this.add.text(width/2, 300, "", { fontSize: '80px', fill: '#ff0', fontStyle: 'bold' }).setOrigin(0.5);
-    
+    // --- CICLO ACHÍS ---
     this.time.addEvent({
         delay: 5000,
         callback: () => {
-            this.alertaTexto.setText("¡ACHÍS! 🤧");
+            // Cambia a imagen de ALERTA
+            this.player.setTexture(prefijo + '_alerta');
             this.cameras.main.shake(500, 0.01);
             
             this.time.delayedCall(1500, () => {
-                this.alertaTexto.setText("");
                 if (!this.isSafe) {
+                    // MUERTE: Cambia a imagen de MUERTO
+                    this.player.setTexture(prefijo + '_muerto');
                     this.cameras.main.flash(500, 255, 0, 0);
-                    this.player.setTint(0xff0000);
-                    alert("SISTEMA COLAPSADO: No llegaste al refugio.");
+                    alert("ERROR DE SISTEMA: No llegaste al refugio.");
                     location.reload();
+                } else {
+                    // Vuelve a la normalidad si se salvó
+                    this.player.setTexture(prefijo + '_normal');
                 }
             });
         },
