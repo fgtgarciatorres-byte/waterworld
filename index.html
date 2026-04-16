@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - Nivel 1 Fix</title>
+    <title>WaterWorld - Fix Personaje</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
@@ -18,11 +18,12 @@ class OficinaScene extends Phaser.Scene {
     preload() {
         this.load.image('fondo', 'fondo.png');
         
-        // AJUSTE CRÍTICO: Si el cuadrado se ve mal, es que estos números (128) 
-        // deben coincidir con el tamaño real de un muñequito en tu imagen.
+        // --- AJUSTE MAESTRO ---
+        // Si el cuadrado sigue saliendo, es que la IA generó frames más grandes.
+        // Probamos con 256 que es el estándar de 4 columnas (1024/4).
         this.load.spritesheet('jugador', 'personaje.png', { 
-            frameWidth: 128, 
-            frameHeight: 128 
+            frameWidth: 256, 
+            frameHeight: 256 
         });
     }
 
@@ -31,17 +32,16 @@ class OficinaScene extends Phaser.Scene {
         this.isSafe = false;
         this.isDead = false;
 
-        // 1. FONDO (Ajustado a tu nueva imagen neón)
+        // 1. FONDO (Tu imagen neón espectacular)
         let bg = this.add.image(width/2, height/2, 'fondo');
         bg.setDisplaySize(width, height);
 
-        // 2. POSICIONES SEGÚN TU DIBUJO
-        // En tu fondo, la oficina está arriba y el refugio está al final de la escalera.
-        this.posOficina = height * 0.35; 
-        this.posRefugio = height * 0.82;
+        // 2. COORDENADAS SEGÚN TU IMAGEN
+        // Ajustadas para que el personaje pise las plataformas reales del dibujo
+        this.posOficina = height * 0.38; 
+        this.posRefugio = height * 0.84;
 
-        // 3. ANIMACIONES
-        // Usamos los frames de la hoja de sprites que generamos
+        // 3. ANIMACIONES (Corregidas)
         if (this.textures.exists('jugador')) {
             this.anims.create({
                 key: 'camina',
@@ -56,60 +56,61 @@ class OficinaScene extends Phaser.Scene {
             });
         }
 
-        // 4. EL PERSONAJE (Sprite con profundidad)
+        // 4. EL PERSONAJE (Eliminamos el efecto "bloque")
         this.player = this.add.sprite(width/2, this.posOficina, 'jugador');
-        this.player.setScale(1.5); // Ajusta este número si se ve muy grande o pequeño
+        
+        // Forzamos que el personaje mida 120 píxeles de alto, 
+        // sin importar lo grande que sea el cuadrado de la imagen original.
+        this.player.setDisplaySize(120, 120); 
         this.player.setDepth(10);
         
         if (this.textures.exists('jugador')) {
             this.player.play('camina');
         }
 
-        // 5. INTERFAZ
-        this.hpText = this.add.text(20, 20, "HP: ❤️❤️❤️", { font: 'bold 24px Arial', fill: '#00dbff' }).setDepth(100);
+        // 5. UI Y TEXTOS
+        this.add.rectangle(0, 0, width, 60, 0x000, 0.5).setOrigin(0).setDepth(100);
+        this.hpText = this.add.text(20, 15, "HP: ❤️❤️❤️", { font: 'bold 20px Arial', fill: '#00dbff' }).setDepth(101);
 
-        // 6. MECÁNICA
+        // 6. CONTROL
         this.input.on('pointerdown', () => this.mover());
-        this.startSneeze();
+        this.bucleSneeze();
     }
 
     mover() {
         if (this.isDead) return;
         this.isSafe = !this.isSafe;
-        
-        // Movimiento suave entre los dos pisos del fondo
         this.tweens.add({
             targets: this.player,
             y: this.isSafe ? this.posRefugio : this.posOficina,
-            duration: 500,
-            ease: 'Cubic.easeInOut'
+            duration: 400,
+            ease: 'Power2'
         });
     }
 
-    startSneeze() {
+    bucleSneeze() {
         if (this.isDead) return;
-        this.time.delayedCall(Phaser.Math.Between(3000, 6000), () => {
-            let aviso = this.add.text(this.scale.width/2, 200, "¡¡ACHÍS!! 🤧", { 
-                font: 'bold 60px Arial', fill: '#ffff00', stroke: '#000', strokeThickness: 8 
-            }).setOrigin(0.5).setDepth(20);
+        this.time.delayedCall(Phaser.Math.Between(3000, 5000), () => {
+            let t = this.add.text(this.scale.width/2, 200, "¡¡ACHÍS!!", { 
+                font: 'bold 70px Arial', fill: '#ff0', stroke: '#000', strokeThickness: 10 
+            }).setOrigin(0.5).setDepth(50);
             
             this.time.delayedCall(1200, () => {
-                aviso.destroy();
+                t.destroy();
                 this.detonar();
             });
         });
     }
 
     detonar() {
-        this.cameras.main.flash(500);
-        this.cameras.main.shake(400, 0.02);
-
+        this.cameras.main.flash(400);
+        this.cameras.main.shake(300, 0.02);
         if (!this.isSafe) {
             this.isDead = true;
             this.player.play('muerto');
             this.time.delayedCall(2000, () => location.reload());
         } else {
-            this.startSneeze();
+            this.bucleSneeze();
         }
     }
 }
@@ -117,7 +118,7 @@ class OficinaScene extends Phaser.Scene {
 const config = {
     type: Phaser.AUTO,
     width: 800,
-    height: 1200, // Proporción vertical para tu fondo
+    height: 1200,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: [OficinaScene]
 };
