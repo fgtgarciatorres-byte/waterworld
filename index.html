@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - Fix Personaje</title>
+    <title>WaterWorld - Edición Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
@@ -16,15 +16,9 @@ class OficinaScene extends Phaser.Scene {
     constructor() { super({ key: 'OficinaScene' }); }
 
     preload() {
+        // CARGA SIMPLE: Cargamos las imágenes como archivos únicos, sin divisiones.
         this.load.image('fondo', 'fondo.png');
-        
-        // --- AJUSTE MAESTRO ---
-        // Si el cuadrado sigue saliendo, es que la IA generó frames más grandes.
-        // Probamos con 256 que es el estándar de 4 columnas (1024/4).
-        this.load.spritesheet('jugador', 'personaje.png', { 
-            frameWidth: 256, 
-            frameHeight: 256 
-        });
+        this.load.image('personaje', 'personaje.png'); // Cargamos toda la imagen
     }
 
     create() {
@@ -32,93 +26,93 @@ class OficinaScene extends Phaser.Scene {
         this.isSafe = false;
         this.isDead = false;
 
-        // 1. FONDO (Tu imagen neón espectacular)
+        // 1. FONDO (Tu imagen espectacular)
         let bg = this.add.image(width/2, height/2, 'fondo');
         bg.setDisplaySize(width, height);
 
-        // 2. COORDENADAS SEGÚN TU IMAGEN
-        // Ajustadas para que el personaje pise las plataformas reales del dibujo
-        this.posOficina = height * 0.38; 
-        this.posRefugio = height * 0.84;
+        // 2. POSICIONES (Ajustadas a tu escalera y plataformas)
+        this.posOficina = height * 0.42; 
+        this.posRefugio = height * 0.85;
 
-        // 3. ANIMACIONES (Corregidas)
-        if (this.textures.exists('jugador')) {
-            this.anims.create({
-                key: 'camina',
-                frames: this.anims.generateFrameNumbers('jugador', { start: 0, end: 3 }),
-                frameRate: 8,
-                repeat: -1
-            });
-            this.anims.create({
-                key: 'muerto',
-                frames: [{ key: 'jugador', frame: 12 }],
-                frameRate: 1
-            });
-        }
-
-        // 4. EL PERSONAJE (Eliminamos el efecto "bloque")
-        this.player = this.add.sprite(width/2, this.posOficina, 'jugador');
+        // 3. EL PERSONAJE (Carga Limpia)
+        // Usamos un recorte manual para evitar el cuadrado negro si la imagen es muy grande
+        this.player = this.add.sprite(width/2, this.posOficina, 'personaje');
         
-        // Forzamos que el personaje mida 120 píxeles de alto, 
-        // sin importar lo grande que sea el cuadrado de la imagen original.
-        this.player.setDisplaySize(120, 120); 
+        // Ajustamos el tamaño visual para que encaje en la oficina
+        this.player.setDisplaySize(100, 100); 
         this.player.setDepth(10);
-        
-        if (this.textures.exists('jugador')) {
-            this.player.play('camina');
-        }
 
-        // 5. UI Y TEXTOS
-        this.add.rectangle(0, 0, width, 60, 0x000, 0.5).setOrigin(0).setDepth(100);
-        this.hpText = this.add.text(20, 15, "HP: ❤️❤️❤️", { font: 'bold 20px Arial', fill: '#00dbff' }).setDepth(101);
+        // --- ALTERNATIVA A LA ANIMACIÓN: El "Latido" del personaje ---
+        this.tweens.add({
+            targets: this.player,
+            scaleY: this.player.scaleY * 1.1,
+            duration: 600,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
 
-        // 6. CONTROL
-        this.input.on('pointerdown', () => this.mover());
-        this.bucleSneeze();
+        // 4. INTERFAZ (Estilo Neón)
+        this.hpText = this.add.text(20, 20, "HP: ❤️❤️❤️", { font: 'bold 22px Arial', fill: '#00dbff' }).setDepth(100);
+
+        // 5. CONTROL Y LÓGICA
+        this.input.on('pointerdown', () => this.ejecutarMovimiento());
+        this.esperarEstornudo();
     }
 
-    mover() {
+    ejecutarMovimiento() {
         if (this.isDead) return;
         this.isSafe = !this.isSafe;
+
+        // Animación de "salto" entre niveles
         this.tweens.add({
             targets: this.player,
             y: this.isSafe ? this.posRefugio : this.posOficina,
-            duration: 400,
-            ease: 'Power2'
+            angle: this.isSafe ? 15 : -15, // Inclinación al caer/subir
+            duration: 500,
+            ease: 'Back.easeOut',
+            onComplete: () => { 
+                this.tweens.add({ targets: this.player, angle: 0, duration: 200 });
+            }
         });
     }
 
-    bucleSneeze() {
+    esperarEstornudo() {
         if (this.isDead) return;
-        this.time.delayedCall(Phaser.Math.Between(3000, 5000), () => {
-            let t = this.add.text(this.scale.width/2, 200, "¡¡ACHÍS!!", { 
-                font: 'bold 70px Arial', fill: '#ff0', stroke: '#000', strokeThickness: 10 
+        this.time.delayedCall(Phaser.Math.Between(3000, 6000), () => {
+            // Efecto visual de susto (agitar personaje)
+            this.tweens.add({ targets: this.player, x: this.player.x + 5, duration: 50, yoyo: true, repeat: 5 });
+            
+            let txt = this.add.text(this.scale.width/2, 200, "¡¡ACHÍS!!", { 
+                font: 'bold 70px Arial', fill: '#ffff00', stroke: '#ff00ff', strokeThickness: 8 
             }).setOrigin(0.5).setDepth(50);
             
             this.time.delayedCall(1200, () => {
-                t.destroy();
-                this.detonar();
+                txt.destroy();
+                this.detonarBomba();
             });
         });
     }
 
-    detonar() {
-        this.cameras.main.flash(400);
-        this.cameras.main.shake(300, 0.02);
+    detonarBomba() {
+        this.cameras.main.flash(500);
+        this.cameras.main.shake(400, 0.02);
+
         if (!this.isSafe) {
             this.isDead = true;
-            this.player.play('muerto');
+            // Efecto de muerte: El personaje se vuelve negro y cae
+            this.player.setTint(0x000000);
+            this.tweens.add({ targets: this.player, angle: 180, y: this.scale.height + 100, duration: 1000 });
             this.time.delayedCall(2000, () => location.reload());
         } else {
-            this.bucleSneeze();
+            this.esperarEstornudo();
         }
     }
 }
 
 const config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 1200,
+    width: 800, height: 1200,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: [OficinaScene]
 };
