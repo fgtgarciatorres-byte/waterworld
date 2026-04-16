@@ -3,22 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - Edición Pro</title>
+    <title>WaterWorld - Edición Final</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', sans-serif; }
+        
+        /* PANTALLA DE INICIO RECUPERADA */
+        #ui-inicio {
+            position: absolute; width: 100%; height: 100%;
+            background: radial-gradient(circle, #0a1422 0%, #000 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 2000; color: white;
+        }
+        .logo { font-size: 3.5rem; font-weight: 900; color: #ff00ff; text-shadow: 0 0 15px #ff00ff; margin-bottom: 20px; letter-spacing: 5px; }
+        input { background: rgba(0,0,0,0.5); border: 2px solid #00dbff; color: #00dbff; font-size: 1.5rem; padding: 15px; width: 180px; text-align: center; margin-bottom: 25px; outline: none; border-radius: 15px; box-shadow: 0 0 10px rgba(0,219,255,0.3); }
+        button { background: #ff00ff; border: none; border-radius: 50px; color: white; padding: 18px 50px; font-size: 1.3rem; font-weight: bold; cursor: pointer; box-shadow: 0 0 25px #ff00ff; transition: 0.2s; }
+        button:hover { transform: scale(1.05); filter: brightness(1.2); }
     </style>
 </head>
 <body>
+
+<div id="ui-inicio">
+    <div class="logo">WATERWORLD</div>
+    <input type="text" id="playerInitials" maxlength="3" placeholder="I.D.">
+    <button id="btnStart">ACCEDER AL SISTEMA</button>
+</div>
 
 <script>
 class OficinaScene extends Phaser.Scene {
     constructor() { super({ key: 'OficinaScene' }); }
 
     preload() {
-        // CARGA SIMPLE: Cargamos las imágenes como archivos únicos, sin divisiones.
+        // Cargamos las imágenes como archivos simples para evitar errores de frames
         this.load.image('fondo', 'fondo.png');
-        this.load.image('personaje', 'personaje.png'); // Cargamos toda la imagen
+        this.load.image('personaje_fijo', 'personaje.png');
     }
 
     create() {
@@ -26,97 +44,101 @@ class OficinaScene extends Phaser.Scene {
         this.isSafe = false;
         this.isDead = false;
 
-        // 1. FONDO (Tu imagen espectacular)
+        // 1. FONDO (Tu diseño espectacular)
         let bg = this.add.image(width/2, height/2, 'fondo');
         bg.setDisplaySize(width, height);
 
-        // 2. POSICIONES (Ajustadas a tu escalera y plataformas)
-        this.posOficina = height * 0.42; 
-        this.posRefugio = height * 0.85;
+        // 2. POSICIONES (Ajustadas a tu imagen 11.12.55.jpeg)
+        this.posOficina = height * 0.43; // Justo en la silla de la oficina
+        this.posRefugio = height * 0.86; // Frente a la compuerta inferior
 
-        // 3. EL PERSONAJE (Carga Limpia)
-        // Usamos un recorte manual para evitar el cuadrado negro si la imagen es muy grande
-        this.player = this.add.sprite(width/2, this.posOficina, 'personaje');
+        // 3. EL PERSONAJE (Alternativa a la animación de frames)
+        this.player = this.add.sprite(width/2, this.posOficina, 'personaje_fijo');
         
-        // Ajustamos el tamaño visual para que encaje en la oficina
-        this.player.setDisplaySize(100, 100); 
+        // --- TRUCO PARA EL CUADRADO NEGRO ---
+        // Si tu imagen de personaje tiene varios muñecos, usamos un "recorte manual"
+        // para mostrar solo el primero (esquina superior izquierda)
+        this.player.setCrop(0, 0, 150, 150); // Muestra solo un trozo de 150x150
+        this.player.setDisplaySize(120, 120); 
         this.player.setDepth(10);
 
-        // --- ALTERNATIVA A LA ANIMACIÓN: El "Latido" del personaje ---
+        // --- ANIMACIÓN PROCEDURAL (Respiración) ---
         this.tweens.add({
             targets: this.player,
-            scaleY: this.player.scaleY * 1.1,
-            duration: 600,
+            scaleY: this.player.scaleY * 1.05,
+            duration: 800,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
 
-        // 4. INTERFAZ (Estilo Neón)
-        this.hpText = this.add.text(20, 20, "HP: ❤️❤️❤️", { font: 'bold 22px Arial', fill: '#00dbff' }).setDepth(100);
+        // 4. UI (Vida y Tiempo)
+        this.hpText = this.add.text(30, 30, "VIDA: ❤️❤️❤️", { font: 'bold 24px Arial', fill: '#00dbff' }).setDepth(100);
 
-        // 5. CONTROL Y LÓGICA
-        this.input.on('pointerdown', () => this.ejecutarMovimiento());
-        this.esperarEstornudo();
+        // 5. CONTROL
+        this.input.on('pointerdown', () => this.moverse());
+        this.lógicaSneeze();
     }
 
-    ejecutarMovimiento() {
+    moverse() {
         if (this.isDead) return;
         this.isSafe = !this.isSafe;
 
-        // Animación de "salto" entre niveles
+        // Animación elástica de movimiento
         this.tweens.add({
             targets: this.player,
             y: this.isSafe ? this.posRefugio : this.posOficina,
-            angle: this.isSafe ? 15 : -15, // Inclinación al caer/subir
+            scaleX: 1.2, // Se deforma un poco al moverse (Squash)
             duration: 500,
             ease: 'Back.easeOut',
-            onComplete: () => { 
-                this.tweens.add({ targets: this.player, angle: 0, duration: 200 });
-            }
+            onComplete: () => { this.player.setScale(this.player.scaleX / 1.2); }
         });
     }
 
-    esperarEstornudo() {
+    lógicaSneeze() {
         if (this.isDead) return;
-        this.time.delayedCall(Phaser.Math.Between(3000, 6000), () => {
-            // Efecto visual de susto (agitar personaje)
-            this.tweens.add({ targets: this.player, x: this.player.x + 5, duration: 50, yoyo: true, repeat: 5 });
+        this.time.delayedCall(Phaser.Math.Between(4000, 7000), () => {
+            // Sacudida de aviso
+            this.tweens.add({ targets: this.player, angle: 10, duration: 50, yoyo: true, repeat: 5 });
             
-            let txt = this.add.text(this.scale.width/2, 200, "¡¡ACHÍS!!", { 
-                font: 'bold 70px Arial', fill: '#ffff00', stroke: '#ff00ff', strokeThickness: 8 
+            let t = this.add.text(this.scale.width/2, 200, "¡¡ACHÍS!! 🤧", { 
+                font: 'bold 70px Arial', fill: '#ffff00', stroke: '#ff00ff', strokeThickness: 10 
             }).setOrigin(0.5).setDepth(50);
             
-            this.time.delayedCall(1200, () => {
-                txt.destroy();
-                this.detonarBomba();
+            this.time.delayedCall(1300, () => {
+                t.destroy();
+                this.detonar();
             });
         });
     }
 
-    detonarBomba() {
-        this.cameras.main.flash(500);
-        this.cameras.main.shake(400, 0.02);
+    detonar() {
+        this.cameras.main.flash(600);
+        this.cameras.main.shake(500, 0.03);
 
         if (!this.isSafe) {
             this.isDead = true;
-            // Efecto de muerte: El personaje se vuelve negro y cae
-            this.player.setTint(0x000000);
-            this.tweens.add({ targets: this.player, angle: 180, y: this.scale.height + 100, duration: 1000 });
+            this.player.setTint(0x000000); // Carbonizado
+            this.tweens.add({ targets: this.player, angle: 90, alpha: 0.5, duration: 1000 });
             this.time.delayedCall(2000, () => location.reload());
         } else {
-            this.esperarEstornudo();
+            this.lógicaSneeze();
         }
     }
 }
 
-const config = {
-    type: Phaser.AUTO,
-    width: 800, height: 1200,
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: [OficinaScene]
+// --- LANZAMIENTO DEL JUEGO ---
+document.getElementById('btnStart').onclick = () => {
+    document.getElementById('ui-inicio').style.display = 'none';
+    const config = {
+        type: Phaser.AUTO,
+        width: 800, height: 1200,
+        backgroundColor: '#000',
+        scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+        scene: [OficinaScene]
+    };
+    new Phaser.Game(config);
 };
-new Phaser.Game(config);
 </script>
 </body>
 </html>
