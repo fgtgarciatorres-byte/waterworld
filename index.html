@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - Nivel 1</title>
+    <title>WaterWorld - Nivel 1 Fix</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
@@ -16,11 +16,13 @@ class OficinaScene extends Phaser.Scene {
     constructor() { super({ key: 'OficinaScene' }); }
 
     preload() {
-        // Cargamos los archivos desde tu GitHub
         this.load.image('fondo', 'fondo.png');
+        
+        // AJUSTE CRÍTICO: Si el cuadrado se ve mal, es que estos números (128) 
+        // deben coincidir con el tamaño real de un muñequito en tu imagen.
         this.load.spritesheet('jugador', 'personaje.png', { 
-            frameWidth: 64, 
-            frameHeight: 64 
+            frameWidth: 128, 
+            frameHeight: 128 
         });
     }
 
@@ -29,27 +31,17 @@ class OficinaScene extends Phaser.Scene {
         this.isSafe = false;
         this.isDead = false;
 
-        // --- 1. FONDO (OFICINA Y REFUGIO) ---
-        if (this.textures.exists('fondo')) {
-            this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height).setDepth(0);
-        } else {
-            // Fondo de emergencia si no hay fondo.png
-            this.add.rectangle(0, 0, width, height/2, 0x141d26).setOrigin(0); // Oficina
-            this.add.rectangle(0, height/2, width, height/2, 0x050505).setOrigin(0); // Refugio
-            this.add.grid(width/2, height*0.75, width, height/2, 40, 40, 0x000, 0, 0x00dbff, 0.1);
-        }
+        // 1. FONDO (Ajustado a tu nueva imagen neón)
+        let bg = this.add.image(width/2, height/2, 'fondo');
+        bg.setDisplaySize(width, height);
 
-        // --- 2. DECORACIÓN (MESAS) ---
-        // Dibujamos las mesas con líneas finas como en tu boceto
-        this.desks = this.add.group();
-        for(let i=0; i<3; i++) {
-            let dx = (width/4) * (i+1);
-            let mesa = this.add.rectangle(dx, height/3.5, 120, 8, 0x00dbff, 0.3).setStrokeStyle(2, 0x00dbff);
-            let monitor = this.add.rectangle(dx, height/3.5 - 25, 40, 30, 0x1a1a1a).setStrokeStyle(1, 0x00dbff);
-            this.desks.addMultiple([mesa, monitor]);
-        }
+        // 2. POSICIONES SEGÚN TU DIBUJO
+        // En tu fondo, la oficina está arriba y el refugio está al final de la escalera.
+        this.posOficina = height * 0.35; 
+        this.posRefugio = height * 0.82;
 
-        // --- 3. ANIMACIONES DEL PERSONAJE ---
+        // 3. ANIMACIONES
+        // Usamos los frames de la hoja de sprites que generamos
         if (this.textures.exists('jugador')) {
             this.anims.create({
                 key: 'camina',
@@ -58,74 +50,66 @@ class OficinaScene extends Phaser.Scene {
                 repeat: -1
             });
             this.anims.create({
-                key: 'susto',
-                frames: [{ key: 'jugador', frame: 8 }]
-            });
-            this.anims.create({
                 key: 'muerto',
-                frames: [{ key: 'jugador', frame: 12 }]
+                frames: [{ key: 'jugador', frame: 12 }],
+                frameRate: 1
             });
         }
 
-        // --- 4. EL PERSONAJE ---
-        // Lo colocamos centrado en la oficina
-        this.player = this.add.sprite(width/2, height/4, 'jugador').setScale(2.5).setDepth(10);
+        // 4. EL PERSONAJE (Sprite con profundidad)
+        this.player = this.add.sprite(width/2, this.posOficina, 'jugador');
+        this.player.setScale(1.5); // Ajusta este número si se ve muy grande o pequeño
+        this.player.setDepth(10);
         
         if (this.textures.exists('jugador')) {
             this.player.play('camina');
-        } else {
-            // Si falla la imagen, dibujamos un círculo para que al menos veas algo
-            let circle = this.add.circle(0, 0, 20, 0x2980b9);
-            this.player = this.add.container(width/2, height/4, [circle]);
         }
 
-        // --- 5. UI (VIDA) ---
-        this.hpText = this.add.text(20, 20, "HP: ❤️❤️❤️", { font: 'bold 20px Arial', fill: '#00dbff' }).setDepth(100);
+        // 5. INTERFAZ
+        this.hpText = this.add.text(20, 20, "HP: ❤️❤️❤️", { font: 'bold 24px Arial', fill: '#00dbff' }).setDepth(100);
 
-        // --- 6. MECÁNICA ---
-        this.input.on('pointerdown', () => this.irAlRefugio());
-        this.esperarEstornudo();
+        // 6. MECÁNICA
+        this.input.on('pointerdown', () => this.mover());
+        this.startSneeze();
     }
 
-    irAlRefugio() {
+    mover() {
         if (this.isDead) return;
         this.isSafe = !this.isSafe;
-        let destinoY = this.isSafe ? (this.scale.height * 0.75) : (this.scale.height * 0.25);
         
+        // Movimiento suave entre los dos pisos del fondo
         this.tweens.add({
             targets: this.player,
-            y: destinoY,
-            duration: 400,
-            ease: 'Power2'
+            y: this.isSafe ? this.posRefugio : this.posOficina,
+            duration: 500,
+            ease: 'Cubic.easeInOut'
         });
     }
 
-    esperarEstornudo() {
+    startSneeze() {
         if (this.isDead) return;
-        this.time.delayedCall(Phaser.Math.Between(3000, 5000), () => {
-            if (this.player.play) this.player.play('susto');
-            let aviso = this.add.text(this.scale.width/2, 120, "¡¡ACHÍS!! 🤧", { 
-                font: 'bold 60px Arial', fill: '#ffff00', stroke: '#000', strokeThickness: 6 
-            }).setOrigin(0.5);
+        this.time.delayedCall(Phaser.Math.Between(3000, 6000), () => {
+            let aviso = this.add.text(this.scale.width/2, 200, "¡¡ACHÍS!! 🤧", { 
+                font: 'bold 60px Arial', fill: '#ffff00', stroke: '#000', strokeThickness: 8 
+            }).setOrigin(0.5).setDepth(20);
             
             this.time.delayedCall(1200, () => {
                 aviso.destroy();
-                this.explosionNuclear();
+                this.detonar();
             });
         });
     }
 
-    explosionNuclear() {
+    detonar() {
         this.cameras.main.flash(500);
         this.cameras.main.shake(400, 0.02);
 
         if (!this.isSafe) {
             this.isDead = true;
-            if (this.player.play) this.player.play('muerto');
+            this.player.play('muerto');
             this.time.delayedCall(2000, () => location.reload());
         } else {
-            if (this.player.play) this.player.play('camina');
-            this.esperarEstornudo();
+            this.startSneeze();
         }
     }
 }
@@ -133,7 +117,7 @@ class OficinaScene extends Phaser.Scene {
 const config = {
     type: Phaser.AUTO,
     width: 800,
-    height: 1200,
+    height: 1200, // Proporción vertical para tu fondo
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: [OficinaScene]
 };
