@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WaterWorld - Oficina Nuclear</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #ui-inicio {
+            position: absolute; width: 100%; height: 100%;
+            background: radial-gradient(circle, #0a1422 0%, #000 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 20; color: white; font-family: 'Segoe UI', sans-serif;
+        }
+        .logo { font-size: 3rem; font-weight: 900; color: #ff00ff; text-shadow: 0 0 10px #ff00ff; margin-bottom: 20px; letter-spacing: 3px; }
+        input { background: rgba(0,0,0,0.5); border: 2px solid #00dbff; color: #00dbff; font-size: 1.5rem; padding: 10px; width: 160px; text-align: center; margin-bottom: 20px; outline: none; border-radius: 12px; }
+        button { background: #ff00ff; border: none; border-radius: 50px; color: white; padding: 15px 40px; font-size: 1.2rem; font-weight: bold; cursor: pointer; box-shadow: 0 0 20px #ff00ff; transition: 0.3s; }
+        button:hover { transform: scale(1.1); }
+    </style>
+</head>
+<body>
+
+<div id="ui-inicio">
+    <div class="logo">WATERWORLD</div>
+    <input type="text" id="playerInitials" maxlength="3" placeholder="AAA">
+    <button id="btnStart">ACCEDER</button>
+</div>
+
+<script>
+class OficinaScene extends Phaser.Scene {
+    constructor() { super({ key: 'OficinaScene' }); }
+
+    preload() {
+        // Cargamos la imagen desde tu carpeta de GitHub
+        this.load.spritesheet('jugador_img', 'personaje.png', { frameWidth: 64, frameHeight: 64 });
+    }
+
+    create() {
+        const { width, height } = this.scale;
+        this.lives = 3;
+        this.workTime = 7 * 60;
+        this.isSafe = false;
+        this.isDead = false;
+        this.colleagues = [];
+
+        // --- ESCENARIO ---
+        this.add.rectangle(0, 0, width, height/2, 0x1a2533).setOrigin(0);
+        this.add.rectangle(0, height/2, width, height/2, 0x050505).setOrigin(0);
+        
+        // Decoración de oficina (Escritorios y Monitores Neón)
+        for(let i=0; i<4; i++) {
+            let dx = 100 + (i * (width/4));
+            this.add.rectangle(dx, height/3.5, 140, 15, 0x7f8c8d).setOrigin(0.5); // Mesa
+            this.add.rectangle(dx, height/3.5 - 25, 50, 40, 0x222).setStrokeStyle(2, 0x00dbff).setOrigin(0.5); // Monitor
+            
+            if (i !== 1) { 
+                let npc = this.add.container(dx, height/3.5);
+                let nBody = this.add.rectangle(0, -10, 30, 40, 0x34495e).setOrigin(0.5);
+                let nHead = this.add.circle(0, -35, 15, 0xffdbac).setOrigin(0.5);
+                npc.add([nBody, nHead]);
+                this.colleagues.push({body: nBody, head: nHead});
+            }
+        }
+
+        // --- JUGADOR ---
+        this.player = this.add.container(width/2, height/4);
+        this.renderPlayer();
+
+        // --- BOMBA ---
+        this.nuke = this.add.circle(width/2, height/4, 0, 0xff6600, 0.6);
+
+        // --- UI ---
+        this.add.rectangle(0, 0, width, 80, 0x000, 0.8).setOrigin(0);
+        this.hpText = this.add.text(30, 25, "HP: ❤️❤️❤️", {fontSize: '24px', fill: '#00dbff', fontStyle: 'bold'});
+        this.clockText = this.add.text(width - 30, 25, "7h 00m", {fontSize: '24px', fill: '#ff00ff', fontStyle: 'bold'}).setOrigin(1, 0);
+
+        // Controles
+        this.input.on('pointerdown', () => this.handleAction());
+        this.startSneezeLogic();
+    }
+
+    renderPlayer() {
+        if (this.textures.exists('jugador_img')) {
+            this.sprite = this.add.sprite(0, 0, 'jugador_img', 0).setScale(1.8);
+            this.player.add(this.sprite);
+        } else {
+            // Backup Vectorial (Traje + Taza con vapor)
+            this.pBody = this.add.rectangle(0, 0, 40, 60, 0x2980b9);
+            this.pHead = this.add.circle(0, -45, 22, 0xffdbac);
+            this.pCup = this.add.rectangle(28, 0, 12, 16, 0xffffff);
+            this.pSteam = this.add.text(28, -15, "~", {fontSize:'16px', fill:'#fff'}).setOrigin(0.5);
+            this.player.add([this.pBody, this.pHead, this.pCup, this.pSteam]);
+            this.tweens.add({ targets: this.pSteam, y: -30, alpha: 0, duration: 800, repeat: -1 });
+        }
+    }
+
+    handleAction() {
+        if (this.isDead) return;
+        this.isSafe = !this.isSafe;
+        let targetY = this.isSafe ? (this.scale.height * 0.75) : (this.scale.height * 0.25);
+        this.tweens.add({ targets: this.player, y: targetY, duration: 300, ease: 'Power2' });
+    }
+
+    startSneezeLogic() {
+        if (this.isDead) return;
+        this.time.delayedCall(Phaser.Math.Between(3000, 6000), () => {
+            this.sTxt = this.add.text(this.scale.width/2, 150, "¡¡ACHÍS!! 🤧", { 
+                fontSize: '60px', fill: '#ff0', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 
+            }).setOrigin(0.5);
+            this.time.delayedCall(1200, () => this.detonate());
+        });
+    }
+
+    detonate() {
+        if (this.sTxt) this.sTxt.destroy();
+        this.cameras.main.flash(300);
+        this.cameras.main.shake(400, 0.01);
+
+        // Animación expansión bomba
+        this.nuke.setRadius(0).setAlpha(0.6);
+        this.tweens.add({ targets: this.nuke, radius: 800, alpha: 0, duration: 700 });
+
+        if (!this.isSafe) {
+            this.isDead = true; this.lives--;
+            this.hpText.setText(`HP: ${'❤️'.repeat(this.lives)}`);
+            this.triggerDeath();
+        } else {
+            // Sobrevives: Carbonizar compañeros arriba
+            this.colleagues.forEach(c => {
+                c.body.setFillStyle(0x111111);
+                c.head.setFillStyle(0xffffff);
+            });
+            this.startSneezeLogic();
+        }
+    }
+
+    triggerDeath() {
+        // Convertir en esqueleto
+        if (this.sprite) this.sprite.setFrame(4);
+        else {
+            this.pBody.setFillStyle(0x111111);
+            this.pHead.setFillStyle(0xffffff);
+            this.player.add(this.add.text(0, -45, "💀", {fontSize:'24px'}).setOrigin(0.5));
+        }
+
+        this.time.delayedCall(2500, () => {
+            alert("¡TE HAN DESPEDIDO... DE LA VIDA!");
+            location.reload();
+        });
+    }
+
+    update(time, delta) {
+        if (!this.isDead) {
+            this.workTime -= delta / 1000;
+            let h = Math.max(0, Math.floor(this.workTime / 60));
+            let m = Math.max(0, Math.floor(this.workTime % 60));
+            this.clockText.setText(`${h}h ${m < 10 ? '0'+m : m}m`);
+        }
+    }
+}
+
+document.getElementById('btnStart').addEventListener('click', () => {
+    document.getElementById('ui-inicio').style.display = 'none';
+    const config = {
+        type: Phaser.AUTO,
+        width: 800, height: 1200,
+        backgroundColor: '#000',
+        scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+        scene: [OficinaScene]
+    };
+    new Phaser.Game(config);
+});
+</script>
+</body>
+</html>
