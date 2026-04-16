@@ -2,31 +2,38 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>WaterWorld - Secuencia Operativa</title>
+    <title>WaterWorld - Sistema Estable</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
         #ui-inicio {
             position: absolute; width: 100%; height: 100%;
             background: #001; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 2000; color: #0ff; font-family: monospace;
+            z-index: 2000; color: #0ff; text-align: center;
         }
-        .btn { padding: 15px 30px; margin: 10px; cursor: pointer; background: transparent; border: 2px solid #f0f; color: #f0f; box-shadow: 0 0 10px #f0f; }
+        .input-id { background: #000; border: 2px solid #0ff; color: #0ff; padding: 10px; margin: 10px; font-size: 20px; text-align: center; }
+        .btn { padding: 15px 30px; margin: 10px; cursor: pointer; background: transparent; border: 2px solid #f0f; color: #f0f; box-shadow: 0 0 10px #f0f; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="ui-inicio">
-        <h1>WATERWORLD I.D.</h1>
-        <button class="btn" onclick="comenzar('h')">♂ HOMBRE</button>
-        <button class="btn" onclick="comenzar('m')" style="border-color:#0ff; color:#0ff; box-shadow: 0 0 10px #0ff;">♀ MUJER</button>
+        <h1 style="font-size: 45px; text-shadow: 0 0 15px #0ff;">WATERWORLD</h1>
+        <input type="text" id="p-id" class="input-id" placeholder="I.D. EMPLEADO" maxlength="10">
+        <div>
+            <button class="btn" onclick="comenzar('h')">♂ HOMBRE</button>
+            <button class="btn" onclick="comenzar('m')" style="border-color:#0ff; color:#0ff; box-shadow: 0 0 10px #0ff;">♀ MUJER</button>
+        </div>
     </div>
 
 <script>
 let genero = 'h';
+let nombreID = "OPERADOR";
 
 function comenzar(g) {
     genero = g;
+    let val = document.getElementById('p-id').value;
+    if(val) nombreID = val.toUpperCase();
     document.getElementById('ui-inicio').style.display = 'none';
     
     const config = {
@@ -42,90 +49,96 @@ function comenzar(g) {
 }
 
 function preload() {
-    // 1. FONDO (Lo cargamos como PNG)
     this.load.image('fondo', 'fondo.png');
     this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
     
-    // 2. PERSONAJES (Extensiones confirmadas)
-    this.load.image('h_n', 'personajeh.png');  // Normal
-    this.load.image('h_a', 'personajeha.png'); // Asustado
-    this.load.image('h_m', 'personajehm.png'); // Muerto
-    
-    this.load.image('m_n', 'personajem.png');  // Normal
-    this.load.image('m_a', 'personajema.png'); // Asustado
-    this.load.image('m_m', 'personajemm.png'); // Muerto
+    // Personajes PNG individuales
+    this.load.image('h_n', 'personajeh.png');  this.load.image('h_a', 'personajeha.png');  this.load.image('h_m', 'personajehm.png');
+    this.load.image('m_n', 'personajem.png');  this.load.image('m_a', 'personajema.png');  this.load.image('m_m', 'personajemm.png');
 
-    // 3. EXPLOSIÓN
-    this.load.video('vid_exp', 'explosion.mp4');
+    this.load.video('v_exp', 'explosion.mp4');
 }
 
 function create() {
     const { width, height } = this.scale;
 
-    // FONDO: Le ponemos profundidad -1 para que siempre esté atrás
-    if (this.textures.exists('fondo')) {
-        this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height).setDepth(-1);
-    }
+    // 1. FONDO (Atrás de todo)
+    this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height).setDepth(-1);
 
-    // BÚNKER
-    this.bunker = this.physics.add.staticImage(width/2, height * 0.85, 'bunker').setScale(0.7);
+    // 2. BÚNKER
+    this.bunker = this.physics.add.staticImage(width/2, height * 0.85, 'bunker').setScale(0.6);
 
-    // JUGADOR (Inicia Normal)
-    let key = genero === 'h' ? 'h_n' : 'm_n';
-    this.player = this.physics.add.sprite(width/2, height * 0.4, key).setScale(2);
+    // 3. CONTENEDOR DEL PERSONAJE (Agrupa Sprite + Nombre)
+    this.pContainer = this.add.container(width/2, height * 0.4);
+    
+    // Sprite dentro del contenedor (Posición 0,0 relativa al contenedor)
+    let textKey = genero === 'h' ? 'h_n' : 'm_n';
+    this.sprite = this.add.sprite(0, 0, textKey).setScale(0.8); // TAMAÑO REDUCIDO
+    
+    // Texto del nombre dentro del contenedor
+    this.label = this.add.text(0, -120, nombreID, { 
+        fontSize: '28px', fill: '#0ff', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 
+    }).setOrigin(0.5);
 
-    // Latido
-    this.tweens.add({ targets: this.player, scale: 2.2, duration: 800, yoyo: true, repeat: -1 });
+    this.pContainer.add([this.sprite, this.label]);
+    this.physics.add.existing(this.pContainer); // Añadir físicas al contenedor
 
-    // Movimiento
+    // --- ANIMACIÓN DE LATIDO (Sin parpadeos) ---
+    this.tweens.add({
+        targets: this.pContainer,
+        scale: 1.1,
+        duration: 900,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+    });
+
+    // 4. MOVIMIENTO
     this.isSafe = false;
     this.input.on('pointerdown', () => {
         this.isSafe = !this.isSafe;
         this.tweens.add({
-            targets: this.player,
+            targets: this.pContainer,
             y: this.isSafe ? height * 0.82 : height * 0.4,
-            duration: 500
+            duration: 600,
+            ease: 'Cubic.easeOut'
         });
     });
 
-    // CICLO DE JUEGO (Secuencia Achís)
+    // 5. SECUENCIA OPERATIVA
     this.time.addEvent({
         delay: 6000,
         loop: true,
         callback: () => {
-            // 1. ESTORNUDO -> Cambia a ASUSTADO
-            this.player.setTexture(genero === 'h' ? 'h_a' : 'm_a');
-            this.cameras.main.shake(300, 0.01);
+            // A. ESTADO ASUSTADO
+            this.sprite.setTexture(genero === 'h' ? 'h_a' : 'm_a');
+            this.cameras.main.shake(400, 0.01);
             
-            // 2. Tiempo de reacción (2 segundos)
             this.time.delayedCall(2000, () => {
                 if (!this.isSafe) {
-                    // RESULTADO: MUERTE
-                    this.morir();
+                    this.ejecutarMuerte();
                 } else {
-                    // RESULTADO: SALVADO (Vuelve a Normal)
-                    this.player.setTexture(genero === 'h' ? 'h_n' : 'm_n');
+                    // B. VUELVE A SALVO
+                    this.sprite.setTexture(genero === 'h' ? 'h_n' : 'm_n');
                 }
             });
         }
     });
 }
 
-function morir() {
-    // 1. Cambia a MUERTO
-    this.player.setTexture(genero === 'h' ? 'h_m' : 'm_m');
+function ejecutarMuerte() {
+    // 1. Cambio a sprite MUERTO
+    this.sprite.setTexture(genero === 'h' ? 'h_m' : 'm_m');
     this.cameras.main.flash(500, 255, 0, 0);
 
-    // 2. VIDEO EXPLOSIÓN (Si no carga, saldrá el texto de error)
-    try {
-        let video = this.add.video(400, 600, 'vid_exp').setScale(2).setDepth(100);
-        video.play();
-        // Si el video falla al reproducir, forzamos el reinicio tras 2 segundos
-        this.time.delayedCall(2000, () => location.reload());
-    } catch(e) {
-        alert("¡BOOM! EXPLOSIÓN");
+    // 2. VIDEO DE EXPLOSIÓN (Siempre visible arriba)
+    let video = this.add.video(this.pContainer.x, this.pContainer.y, 'v_exp');
+    video.setDepth(100).setScale(1.5).play();
+
+    this.time.delayedCall(2500, () => {
+        alert("SISTEMA DESTRUIDO - I.D. " + nombreID + " OFFLINE");
         location.reload();
-    }
+    });
 }
 
 function update() {}
