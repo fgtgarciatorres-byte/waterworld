@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>WaterWorld - Sistema Estable</title>
+    <title>WaterWorld - Operativo Final</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
@@ -51,74 +51,70 @@ function comenzar(g) {
 function preload() {
     this.load.image('fondo', 'fondo.png');
     this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
-    
-    // Personajes PNG individuales
     this.load.image('h_n', 'personajeh.png');  this.load.image('h_a', 'personajeha.png');  this.load.image('h_m', 'personajehm.png');
     this.load.image('m_n', 'personajem.png');  this.load.image('m_a', 'personajema.png');  this.load.image('m_m', 'personajemm.png');
-
     this.load.video('v_exp', 'explosion.mp4');
 }
 
 function create() {
     const { width, height } = this.scale;
 
-    // 1. FONDO (Atrás de todo)
+    // 1. ESCENARIO
     this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height).setDepth(-1);
-
-    // 2. BÚNKER
     this.bunker = this.physics.add.staticImage(width/2, height * 0.85, 'bunker').setScale(0.6);
 
-    // 3. CONTENEDOR DEL PERSONAJE (Agrupa Sprite + Nombre)
+    // 2. PERSONAJE Y CONTENEDOR (Lo que ya funcionaba)
     this.pContainer = this.add.container(width/2, height * 0.4);
-    
-    // Sprite dentro del contenedor (Posición 0,0 relativa al contenedor)
     let textKey = genero === 'h' ? 'h_n' : 'm_n';
-    this.sprite = this.add.sprite(0, 0, textKey).setScale(0.8); // TAMAÑO REDUCIDO
-    
-    // Texto del nombre dentro del contenedor
-    this.label = this.add.text(0, -120, nombreID, { 
-        fontSize: '28px', fill: '#0ff', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 
-    }).setOrigin(0.5);
-
+    this.sprite = this.add.sprite(0, 0, textKey).setScale(0.8);
+    this.label = this.add.text(0, -120, nombreID, { fontSize: '28px', fill: '#0ff', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
     this.pContainer.add([this.sprite, this.label]);
-    this.physics.add.existing(this.pContainer); // Añadir físicas al contenedor
+    this.physics.add.existing(this.pContainer);
 
-    // --- ANIMACIÓN DE LATIDO (Sin parpadeos) ---
-    this.tweens.add({
-        targets: this.pContainer,
-        scale: 1.1,
-        duration: 900,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut'
+    this.tweens.add({ targets: this.pContainer, scale: 1.05, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
+    // 3. NUEVA INTERFAZ (UI)
+    this.vidas = 3;
+    this.corazones = this.add.text(30, 30, '❤️❤️❤️', { fontSize: '45px' }); // Vidas arriba izquierda
+    
+    this.horas = 8;
+    this.minutos = 0;
+    this.relojTexto = this.add.text(width - 220, 30, '08:00 AM', { fontSize: '40px', fill: '#0ff', fontStyle: 'bold' }); // Reloj arriba derecha
+
+    // Evento de tiempo para el reloj (Rápido)
+    this.time.addEvent({
+        delay: 1000, // Cada 1 segundo real...
+        callback: () => {
+            this.minutos += 15; // ...pasan 15 minutos de juego
+            if(this.minutos >= 60) { this.minutos = 0; this.horas++; }
+            let h = this.horas < 10 ? '0'+this.horas : this.horas;
+            let m = this.minutos === 0 ? '00' : this.minutos;
+            this.relojTexto.setText(`${h}:${m} AM`);
+        },
+        loop: true
     });
 
     // 4. MOVIMIENTO
     this.isSafe = false;
     this.input.on('pointerdown', () => {
+        if(this.vidas <= 0) return;
         this.isSafe = !this.isSafe;
-        this.tweens.add({
-            targets: this.pContainer,
-            y: this.isSafe ? height * 0.82 : height * 0.4,
-            duration: 600,
-            ease: 'Cubic.easeOut'
-        });
+        this.tweens.add({ targets: this.pContainer, y: this.isSafe ? height * 0.82 : height * 0.4, duration: 600, ease: 'Cubic.easeOut' });
     });
 
-    // 5. SECUENCIA OPERATIVA
+    // 5. SECUENCIA ACHÍS (SISTEMA DE VIDAS)
     this.time.addEvent({
-        delay: 6000,
+        delay: 7000,
         loop: true,
         callback: () => {
-            // A. ESTADO ASUSTADO
+            if(this.vidas <= 0) return;
             this.sprite.setTexture(genero === 'h' ? 'h_a' : 'm_a');
             this.cameras.main.shake(400, 0.01);
             
             this.time.delayedCall(2000, () => {
                 if (!this.isSafe) {
-                    this.ejecutarMuerte();
+                    this.quitarVida();
                 } else {
-                    // B. VUELVE A SALVO
                     this.sprite.setTexture(genero === 'h' ? 'h_n' : 'm_n');
                 }
             });
@@ -126,17 +122,31 @@ function create() {
     });
 }
 
-function ejecutarMuerte() {
-    // 1. Cambio a sprite MUERTO
-    this.sprite.setTexture(genero === 'h' ? 'h_m' : 'm_m');
-    this.cameras.main.flash(500, 255, 0, 0);
+function quitarVida() {
+    this.vidas--;
+    // Actualizar visual de corazones
+    let stringCorazones = '';
+    for(let i=0; i<this.vidas; i++) stringCorazones += '❤️';
+    this.corazones.setText(stringCorazones);
 
-    // 2. VIDEO DE EXPLOSIÓN (Siempre visible arriba)
+    if (this.vidas <= 0) {
+        this.ejecutarMuerte();
+    } else {
+        this.cameras.main.flash(400, 255, 0, 0);
+        this.sprite.setTexture(genero === 'h' ? 'h_n' : 'm_n'); // Vuelve a normal para seguir jugando
+    }
+}
+
+function ejecutarMuerte() {
+    this.sprite.setTexture(genero === 'h' ? 'h_m' : 'm_m'); // Sprite MUERTO
+    this.cameras.main.flash(1000, 255, 0, 0);
+
+    // Video de explosión siempre al frente
     let video = this.add.video(this.pContainer.x, this.pContainer.y, 'v_exp');
     video.setDepth(100).setScale(1.5).play();
 
-    this.time.delayedCall(2500, () => {
-        alert("SISTEMA DESTRUIDO - I.D. " + nombreID + " OFFLINE");
+    this.time.delayedCall(3000, () => {
+        alert("GAME OVER: I.D. " + nombreID + " ELIMINADO");
         location.reload();
     });
 }
