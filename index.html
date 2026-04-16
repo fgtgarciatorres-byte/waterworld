@@ -68,7 +68,7 @@ function create() {
     // 2. CONTENEDOR PERSONAJE (Une Nombre + Sprite)
     this.pContainer = this.add.container(width/2, 400); // Inicia en la oficina (Arriba)
     let key = genero === 'h' ? 'h_n' : 'm_n';
-    this.sprite = this.add.sprite(0, 0, key).setScale(0.8);
+    this.sprite = this.add.sprite(0, 0, key).setScale(0.5);
     this.txtNombre = this.add.text(0, -130, miNombre, { fontSize: '26px', fill: '#0ff', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
     
     this.pContainer.add([this.sprite, this.txtNombre]);
