@@ -3,42 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - Edición Neón</title>
+    <title>WaterWorld - Sistema Operativo</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
-        #ui-inicio {
+        body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
+        #ui-capa {
             position: absolute; width: 100%; height: 100%;
-            background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 2000; color: #0ff; text-align: center; border: 5px solid #0ff;
+            background: radial-gradient(circle, #001 0%, #000 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 2000; color: #0ff; text-align: center;
         }
-        .btn-neon {
-            padding: 20px 40px; font-size: 24px; color: #fff; border: 3px solid #f0f;
-            background: #000; cursor: pointer; box-shadow: 0 0 20px #f0f; border-radius: 15px; margin: 10px;
-        }
+        .input-id { background: #000; border: 2px solid #0ff; color: #0ff; padding: 10px; margin: 10px; font-size: 20px; text-align: center; box-shadow: 0 0 10px #0ff; }
+        .btn-neon { padding: 15px 30px; margin: 10px; font-size: 18px; color: #f0f; border: 2px solid #f0f; background: transparent; cursor: pointer; box-shadow: 0 0 15px #f0f; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-    <div id="ui-inicio">
-        <h1 style="font-size: 50px; text-shadow: 0 0 20px #0ff;">WATERWORLD</h1>
-        <p>SELECCIONA GÉNERO PARA CARGAR DATOS:</p>
-        <button class="btn-neon" onclick="iniciar('h')">HOMBRE</button>
-        <button class="btn-neon" onclick="iniciar('m')" style="box-shadow: 0 0 20px #0ff; border-color: #0ff;">MUJER</button>
-        <p id="status" style="font-size: 12px; color: #555; margin-top: 20px;">Esperando selección...</p>
+    <div id="ui-capa">
+        <h1 style="text-shadow: 0 0 20px #0ff; font-size: 40px;">WATERWORLD</h1>
+        <p>INGRESE I.D. DE EMPLEADO:</p>
+        <input type="text" id="player-id" class="input-id" placeholder="NOMBRE..." maxlength="10">
+        <div>
+            <p>SELECCIONE UNIDAD:</p>
+            <button class="btn-neon" onclick="comenzar('h')">♂ HOMBRE</button>
+            <button class="btn-neon" onclick="comenzar('m')" style="color:#0ff; border-color:#0ff; box-shadow: 0 0 15px #0ff;">♀ MUJER</button>
+        </div>
     </div>
 
     <div id="game-container"></div>
 
 <script>
-let config;
-let prefijo = 'h';
+let miID = "INVITADO";
+let genero = 'h';
 
-function iniciar(g) {
-    prefijo = g;
-    document.getElementById('ui-inicio').style.display = 'none';
-    
-    config = {
+function comenzar(g) {
+    let name = document.getElementById('player-id').value;
+    if(name) miID = name.toUpperCase();
+    genero = g;
+    document.getElementById('ui-capa').style.display = 'none';
+    iniciarPhaser();
+}
+
+function iniciarPhaser() {
+    const config = {
         type: Phaser.AUTO,
         width: 800,
         height: 1200,
@@ -51,108 +58,101 @@ function iniciar(g) {
 }
 
 function preload() {
-    // CARGA CON RUTA RELATIVA FORZADA (./)
-    // Fondo
-    this.load.image('fondo', './fondo.jpg');
-    this.load.image('bunker', './WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
+    // --- CAMBIO A FONDO.PNG ---
+    this.load.image('fondo', 'fondo.png'); 
     
-    // Personajes
-    this.load.image('h_norm', './personajeh.png');
-    this.load.image('h_alert', './personajeha.png');
-    this.load.image('h_dead', './personajehm.png');
-    this.load.image('m_norm', './personajem.png');
-    this.load.image('m_alert', './personajema.png');
-    this.load.image('m_dead', './personajemm.png');
+    // El búnker (ajusta la extensión si este también fuera .png)
+    this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
+    
+    // Personajes (Individuales PNG)
+    this.load.image('h_n', 'personajeh.png');
+    this.load.image('h_a', 'personajeha.png');
+    this.load.image('h_m', 'personajehm.png');
+    this.load.image('m_n', 'personajem.png');
+    this.load.image('m_a', 'personajema.png');
+    this.load.image('m_m', 'personajemm.png');
 
-    // Video (Si el video falla, el juego seguirá funcionando)
-    this.load.video('vid_explosion', './explosion.mp4');
+    // Explosión (Video)
+    this.load.video('v_explota', 'explosion.mp4');
 
-    // Debug en consola para ver qué falla exactamente
+    // Detector de errores para avisarte si algo falla en la consola
     this.load.on('loaderror', (file) => {
-        console.warn("No se pudo cargar: " + file.src);
+        console.error("❌ Error de carga en: " + file.src);
     });
 }
 
 function create() {
     const { width, height } = this.scale;
 
-    // 1. FONDO (Con respaldo de color si falla la imagen)
-    this.add.rectangle(width/2, height/2, width, height, 0x000510); 
-    if (this.textures.exists('fondo')) {
-        this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height);
-    }
+    // 1. Fondo renderizado como PNG
+    this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height);
 
-    // 2. BÚNKER
-    this.bunker = this.physics.add.staticImage(width/2, height * 0.85, 'bunker').setScale(0.7);
+    // 2. Búnker
+    this.bunker = this.physics.add.staticImage(width/2, height * 0.85, 'bunker').setScale(0.6);
 
-    // 3. JUGADOR
-    let texturaInicial = prefijo === 'h' ? 'h_norm' : 'm_norm';
-    this.player = this.physics.add.sprite(width/2, height * 0.4, texturaInicial);
-    this.player.setScale(2);
+    // 3. Jugador
+    let t = genero === 'h' ? 'h_n' : 'm_n';
+    this.player = this.physics.add.sprite(width/2, height * 0.4, t).setScale(1.8);
 
-    // Latido Neón
+    // I.D. sobre el personaje
+    this.idLabel = this.add.text(width/2, 0, miID, { fontSize: '24px', fill: '#0ff', fontStyle: 'bold' }).setOrigin(0.5);
+
+    // Animación Latido
     this.tweens.add({
-        targets: this.player,
-        scale: 2.3,
+        targets: [this.player, this.idLabel],
+        scale: 1.1,
         duration: 800,
         yoyo: true,
         repeat: -1
     });
 
-    // 4. LÓGICA DE MOVIMIENTO
+    // 4. Movimiento por Tap/Click
     this.isSafe = false;
     this.input.on('pointerdown', () => {
         this.isSafe = !this.isSafe;
         this.tweens.add({
             targets: this.player,
             y: this.isSafe ? height * 0.82 : height * 0.4,
-            duration: 600,
-            ease: 'Cubic.easeOut'
+            duration: 500,
+            ease: 'Power2'
         });
     });
 
-    // 5. CICLO DE ALERTA
+    // 5. Ciclo "ACHÍS"
     this.time.addEvent({
-        delay: 7000,
+        delay: 6000,
         loop: true,
         callback: () => {
-            // Cambiar a sprite de ALERTA
-            this.player.setTexture(prefijo === 'h' ? 'h_alert' : 'm_alert');
-            this.cameras.main.shake(500, 0.01);
-
+            this.player.setTexture(genero === 'h' ? 'h_a' : 'm_a');
+            this.cameras.main.shake(400, 0.01);
+            
             this.time.delayedCall(2000, () => {
                 if (!this.isSafe) {
-                    this.morir();
+                    this.detonar();
                 } else {
-                    this.player.setTexture(prefijo === 'h' ? 'h_norm' : 'm_norm');
+                    this.player.setTexture(genero === 'h' ? 'h_n' : 'm_n');
                 }
             });
         }
     });
 }
 
-function morir() {
-    // Cambiar a sprite de MUERTE
-    this.player.setTexture(prefijo === 'h' ? 'h_dead' : 'm_dead');
+function detonar() {
+    this.player.setTexture(genero === 'h' ? 'h_m' : 'm_m');
     this.cameras.main.flash(500, 255, 0, 0);
+    
+    let v = this.add.video(this.player.x, this.player.y, 'v_explota').setScale(2);
+    v.play();
 
-    // INTENTAR REPRODUCIR VIDEO
-    try {
-        let video = this.add.video(400, 600, 'vid_explosion').setScale(2);
-        video.play();
-        video.on('complete', () => location.reload());
-    } catch (e) {
-        console.error("Video falló, usando fallback");
-    }
-
-    // Si el video no funciona, recargar tras 3 segundos de todos modos
-    this.time.delayedCall(3000, () => {
-        alert("GAME OVER - SISTEMA DESTRUIDO");
+    this.time.delayedCall(2500, () => {
+        alert("SISTEMA COLAPSADO: I.D. " + miID + " FUERA DE SERVICIO");
         location.reload();
     });
 }
 
-function update() {}
+function update() {
+    if(this.player) this.idLabel.setPosition(this.player.x, this.player.y - 120);
+}
 </script>
 </body>
 </html>
