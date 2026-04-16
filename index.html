@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>WaterWorld - Sistema Operativo</title>
+    <title>WaterWorld - Nivel 1 Finalizado</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
@@ -11,14 +11,16 @@
             background: #001; display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 2000; color: #0ff; text-align: center;
         }
-        .btn { padding: 15px 30px; margin: 10px; cursor: pointer; background: transparent; border: 2px solid #f0f; color: #f0f; box-shadow: 0 0 10px #f0f; font-weight: bold; }
+        .input-id { background: #000; border: 2px solid #0ff; color: #0ff; padding: 10px; margin: 10px; font-size: 20px; text-align: center; box-shadow: 0 0 10px #0ff; }
+        .btn { padding: 15px 30px; margin: 10px; cursor: pointer; background: transparent; border: 2px solid #f0f; color: #f0f; box-shadow: 0 0 10px #f0f; font-weight: bold; border-radius: 5px; }
     </style>
 </head>
 <body>
 
     <div id="ui-inicio">
         <h1 style="font-size: 45px; text-shadow: 0 0 15px #0ff;">WATERWORLD</h1>
-        <div style="margin: 20px;">
+        <input type="text" id="player-name" class="input-id" placeholder="I.D. EMPLEADO" maxlength="10">
+        <div>
             <button class="btn" onclick="comenzar('h')">♂ HOMBRE</button>
             <button class="btn" onclick="comenzar('m')" style="border-color:#0ff; color:#0ff; box-shadow: 0 0 10px #0ff;">♀ MUJER</button>
         </div>
@@ -26,9 +28,12 @@
 
 <script>
 let genero = 'h';
+let miNombre = "OPERADOR";
 
 function comenzar(g) {
     genero = g;
+    let n = document.getElementById('player-name').value;
+    if(n) miNombre = n.toUpperCase();
     document.getElementById('ui-inicio').style.display = 'none';
     
     const config = {
@@ -46,66 +51,62 @@ function comenzar(g) {
 function preload() {
     this.load.image('fondo', 'fondo.png');
     this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
-    this.load.image('img_explosion', 'explosion.png');
+    this.load.image('explosion', 'explosion.png');
     
-    // Nombres de archivos exactos según tu lista
-    this.load.image('h_n', 'personajeh.png');   // Normal
-    this.load.image('h_a', 'personajeha.png');  // Asustado
-    this.load.image('h_m', 'personajehm.png');  // MUERTO HOMBRE
-    
-    this.load.image('m_n', 'personajem.png');   // Normal
-    this.load.image('m_a', 'personajema.png');  // Asustada
-    this.load.image('m_m', 'personajemm.png');  // MUERTO MUJER
+    // Carga de Sprites Individuales (Nombres corregidos)
+    this.load.image('h_n', 'personajeh.png');   this.load.image('h_a', 'personajeha.png');  this.load.image('h_m', 'personajehm.png');
+    this.load.image('m_n', 'personajem.png');   this.load.image('m_a', 'personajema.png');  this.load.image('m_m', 'personajemm.png');
 }
 
 function create() {
     const { width, height } = this.scale;
 
-    // 1. ESCENARIO
+    // 1. FONDO Y ESCENARIO
     this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height).setDepth(-1);
-    this.add.image(width/2, height * 0.90, 'bunker').setScale(0.8).setAlpha(0.7);
+    this.add.image(width/2, 1100, 'bunker').setScale(0.8).setAlpha(0.6);
 
-    // 2. PERSONAJE (Contenedor)
-    // Posición inicial: 400 (Arriba/Oficina)
-    this.pContainer = this.add.container(width/2, 400); 
-    let textKey = genero === 'h' ? 'h_n' : 'm_n';
-    this.sprite = this.add.sprite(0, 0, textKey).setScale(0.7);
-    this.pContainer.add(this.sprite);
+    // 2. CONTENEDOR PERSONAJE (Une Nombre + Sprite)
+    this.pContainer = this.add.container(width/2, 400); // Inicia en la oficina (Arriba)
+    let key = genero === 'h' ? 'h_n' : 'm_n';
+    this.sprite = this.add.sprite(0, 0, key).setScale(0.8);
+    this.txtNombre = this.add.text(0, -130, miNombre, { fontSize: '26px', fill: '#0ff', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
+    
+    this.pContainer.add([this.sprite, this.txtNombre]);
 
-    // Latido constante
+    // Latido (Afecta a todo el contenedor: nombre y personaje juntos)
     this.tweens.add({ targets: this.pContainer, scale: 1.05, duration: 800, yoyo: true, repeat: -1 });
 
-    // 3. UI: VIDAS Y RELOJ ROJO
+    // 3. UI: VIDAS Y RELOJ (ROJO)
     this.vidas = 3;
     this.corazones = this.add.text(30, 40, '❤️❤️❤️', { fontSize: '45px' });
     
     this.horas = 8; this.minutos = 0;
-    this.relojTexto = this.add.text(width - 250, 40, '08:00 AM', { 
-        fontSize: '45px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 
+    this.reloj = this.add.text(width - 260, 40, '08:00 AM', { 
+        fontSize: '48px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 
     });
 
-    // Reloj Acelerado (Límite 15:00 PM)
+    // Reloj acelerado (Límite 15:00 PM)
     this.time.addEvent({
         delay: 1000,
         callback: () => {
             if(this.vidas <= 0) return;
             this.minutos += 30;
             if(this.minutos >= 60) { this.minutos = 0; this.horas++; }
-            let h = (this.horas < 10) ? '0'+this.horas : this.horas;
-            let m = (this.minutos === 0) ? '00' : this.minutos;
-            this.relojTexto.setText(`${h}:${m} PM`);
-
-            if(this.horas >= 15) this.morirDefinitivamente("JORNADA FINALIZADA");
+            let h = this.horas < 10 ? '0'+this.horas : this.horas;
+            let m = this.minutos === 0 ? '00' : this.minutos;
+            this.reloj.setText(`${h}:${m} PM`);
+            if(this.horas >= 15) this.morir("JORNADA FINALIZADA");
         },
         loop: true
     });
 
-    // 4. MOVIMIENTO (Click/Tap)
-    // Suelo está en 1050 para que parezca que pisa el búnker
+    // 4. MOVIMIENTO (Click) - Suelo en 1080
+    this.isSafe = false;
     this.input.on('pointerdown', () => {
         if(this.vidas <= 0) return;
-        let destinoY = (this.pContainer.y < 600) ? 1050 : 400;
-        this.tweens.add({ targets: this.pContainer, y: destinoY, duration: 500, ease: 'Power2' });
+        this.isSafe = !this.isSafe;
+        let posFinal = this.isSafe ? 1080 : 400;
+        this.tweens.add({ targets: this.pContainer, y: posFinal, duration: 500, ease: 'Power2' });
     });
 
     // 5. CICLO ACHÍS
@@ -115,17 +116,15 @@ function create() {
         callback: () => {
             if(this.vidas <= 0 || this.horas >= 15) return;
             
-            // Cambia a ASUSTADO
+            // Alerta
             this.sprite.setTexture(genero === 'h' ? 'h_a' : 'm_a');
             this.cameras.main.shake(400, 0.01);
             
             this.time.delayedCall(2000, () => {
-                // Si está en la mitad superior (Y < 600) pierde vida
-                if (this.pContainer.y < 600) {
+                if (this.pContainer.y < 600) { // Si está en la zona de arriba
                     this.quitarVida();
                 } else {
-                    // Si se salvó, vuelve a NORMAL
-                    this.sprite.setTexture(genero === 'h' ? 'h_n' : 'm_n');
+                    this.sprite.setTexture(genero === 'h' ? 'h_n' : 'm_n'); // Vuelve a normal
                 }
             });
         }
@@ -139,34 +138,23 @@ function quitarVida() {
     this.corazones.setText(hearts);
 
     if (this.vidas <= 0) {
-        this.morirDefinitivamente("SISTEMA DESTRUIDO");
+        this.morir("SISTEMA DESTRUIDO");
     } else {
         this.cameras.main.flash(500, 255, 0, 0);
-        // Tras el susto y el daño, vuelve a NORMAL para seguir
         this.sprite.setTexture(genero === 'h' ? 'h_n' : 'm_n');
     }
 }
 
-function morirDefinitivamente(motivo) {
-    if(this.yaMuerto) return;
-    this.yaMuerto = true;
-    this.vidas = 0;
-    this.corazones.setText('');
-
-    // 1. CAMBIO A SPRITE MUERTO (HM o MM)
+function morir(motivo) {
+    if(this.muertoYa) return;
+    this.muertoYa = true;
+    
+    // 1. Imagen de muerte (HM o MM)
     this.sprite.setTexture(genero === 'h' ? 'h_m' : 'm_m');
 
-    // 2. EFECTO EXPLOSIÓN (CRECIENDO Y VIBRANDO)
-    let explosion = this.add.image(this.pContainer.x, this.pContainer.y, 'img_explosion');
-    explosion.setScale(0.1).setDepth(100);
-
-    this.tweens.add({
-        targets: explosion,
-        scale: 4,
-        duration: 800,
-        ease: 'Expo.out'
-    });
-
+    // 2. Efecto Explosión
+    let exp = this.add.image(this.pContainer.x, this.pContainer.y, 'explosion').setScale(0.1).setDepth(100);
+    this.tweens.add({ targets: exp, scale: 4, duration: 800, ease: 'Expo.out' });
     this.cameras.main.shake(1000, 0.05);
 
     this.time.delayedCall(2500, () => {
