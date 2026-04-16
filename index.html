@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - Pro Graphics Edition</title>
+    <title>WaterWorld - Nivel 1</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
@@ -16,143 +16,98 @@ class OficinaScene extends Phaser.Scene {
     constructor() { super({ key: 'OficinaScene' }); }
 
     preload() {
-        // CARGA DE IMÁGENES
-        this.load.image('fondo_oficina', 'fondo.png'); 
-        this.load.spritesheet('jugador_img', 'personaje.png', { frameWidth: 64, frameHeight: 64 });
+        // Cargamos tu personaje desde GitHub
+        this.load.spritesheet('jugador', 'personaje.png', { frameWidth: 64, frameHeight: 64 });
+        // Intentamos cargar fondo si existe
+        this.load.image('fondo', 'fondo.png');
     }
 
     create() {
         const { width, height } = this.scale;
-        this.lives = 3;
-        this.workTime = 7 * 60;
         this.isSafe = false;
         this.isDead = false;
-        this.npcs = [];
 
-        // --- 1. FONDO DE IMAGEN REAL ---
-        if (this.textures.exists('fondo_oficina')) {
-            let bg = this.add.image(width/2, height/2, 'fondo_oficina');
-            // Ajuste perfecto: escalamos la imagen para que cubra toda la pantalla
-            let scaleX = width / bg.width;
-            let scaleY = height / bg.height;
-            let scale = Math.max(scaleX, scaleY);
-            bg.setScale(scale).setAlpha(0.6); // Un poco de transparencia para el toque neón
+        // --- 1. FONDO (Prioridad Gráfica) ---
+        if (this.textures.exists('fondo')) {
+            this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height);
         } else {
-            // Fondo de emergencia si no carga la imagen
+            // Fondo neón de emergencia (para que no se vea "fatal")
             this.add.rectangle(0, 0, width, height/2, 0x1a2533).setOrigin(0);
             this.add.rectangle(0, height/2, width, height/2, 0x0a0a0a).setOrigin(0);
+            this.add.grid(width/2, height*0.75, width, height/2, 40, 40, 0x000, 0, 0x00dbff, 0.1);
         }
 
-        // Capa de "niebla neón" para mejorar la estética
-        this.add.rectangle(0, height/2, width, 5, 0x00dbff).setOrigin(0, 0.5).setAlpha(0.5);
+        // --- 2. DECORACIÓN (Basada en tu boceto) ---
+        this.drawDesks(width, height);
 
-        // --- 2. DECORACIÓN (ESCRITORIOS) ---
-        for(let i=0; i<4; i++) {
-            let dx = 100 + (i * (width/4));
-            // Escritorio neón
-            this.add.rectangle(dx, height/3.5, 140, 10, 0x34495e).setOrigin(0.5).setStrokeStyle(2, 0x00dbff);
-            
-            if (i !== 1) { 
-                let npc = this.add.container(dx, height/3.5);
-                let nBody = this.add.rectangle(0, -15, 30, 40, 0x2980b9).setOrigin(0.5);
-                let nHead = this.add.circle(0, -45, 15, 0xffdbac).setOrigin(0.5);
-                npc.add([nBody, nHead]);
-                this.npcs.push({ container: npc, body: nBody, head: nHead });
-            }
+        // --- 3. ANIMACIONES ---
+        if (this.textures.exists('jugador')) {
+            this.anims.create({
+                key: 'caminar',
+                frames: this.anims.generateFrameNumbers('jugador', { start: 0, end: 3 }),
+                frameRate: 8, repeat: -1
+            });
+            this.anims.create({
+                key: 'asustado', frames: [{ key: 'jugador', frame: 8 }]
+            });
+            this.anims.create({
+                key: 'muerto', frames: [{ key: 'jugador', frame: 12 }]
+            });
         }
 
-        // --- 3. JUGADOR ---
-        this.player = this.add.container(width/2, height/4);
-        this.renderPlayer();
+        // --- 4. PERSONAJE ---
+        this.player = this.add.sprite(width/2, height/4, 'jugador').setScale(2.5).setDepth(10);
+        if (this.textures.exists('jugador')) this.player.play('caminar');
 
-        // --- 4. EFECTOS DE LA EXPLOSIÓN ---
-        this.nukeFlash = this.add.rectangle(0, 0, width, height, 0xffffff).setOrigin(0).setAlpha(0).setDepth(10);
-        this.nukeWave = this.add.circle(width/2, height/4, 0, 0xffcc00, 0.8).setDepth(5);
+        // --- 5. UI Y EFECTOS ---
+        this.hpText = this.add.text(20, 20, "HP: ❤️❤️❤️", { font: 'bold 20px Arial', fill: '#00dbff' }).setDepth(100);
+        this.flash = this.add.rectangle(0,0, width, height, 0xffffff).setOrigin(0).setAlpha(0).setDepth(1000);
 
-        // --- 5. UI ---
-        this.add.rectangle(0, 0, width, 80, 0x000, 0.9).setOrigin(0).setDepth(20);
-        this.hpText = this.add.text(30, 25, "HP: ❤️❤️❤️", {fontSize: '24px', fill: '#00dbff', fontStyle: 'bold'}).setDepth(21);
-        this.clockText = this.add.text(width - 30, 25, "7h 00m", {fontSize: '24px', fill: '#ff00ff', fontStyle: 'bold'}).setOrigin(1, 0).setDepth(21);
-
-        this.input.on('pointerdown', () => this.movePlayer());
-        this.startSneeze();
+        // Controles
+        this.input.on('pointerdown', () => this.toggleShelter());
+        this.startSneezeTimer();
     }
 
-    renderPlayer() {
-        if (this.textures.exists('jugador_img')) {
-            this.sprite = this.add.sprite(0, 0, 'jugador_img', 0).setScale(2);
-            this.player.add(this.sprite);
-        } else {
-            // Backup visual "Pro"
-            let pBody = this.add.rectangle(0, 0, 40, 60, 0x2980b9).setStrokeStyle(2, 0x00dbff);
-            let pHead = this.add.circle(0, -48, 24, 0xffdbac);
-            this.player.add([pBody, pHead]);
+    drawDesks(w, h) {
+        for(let i=0; i<3; i++) {
+            let dx = (w/4) * (i+1);
+            // Dibujamos las mesas del boceto
+            this.add.rectangle(dx, h/3.2, 120, 10, 0x34495e).setOrigin(0.5).setStrokeStyle(2, 0x00dbff);
+            this.add.rectangle(dx, h/3.2 - 25, 40, 30, 0x222).setOrigin(0.5).setStrokeStyle(1, 0x00dbff);
         }
     }
 
-    movePlayer() {
+    toggleShelter() {
         if (this.isDead) return;
         this.isSafe = !this.isSafe;
-        let targetY = this.isSafe ? (this.scale.height * 0.75) : (this.scale.height * 0.25);
-        this.tweens.add({ targets: this.player, y: targetY, duration: 400, ease: 'Cubic.easeOut' });
+        let targetY = this.isSafe ? (this.scale.height * 0.8) : (this.scale.height * 0.25);
+        this.tweens.add({ targets: this.player, y: targetY, duration: 300, ease: 'Back.easeOut' });
     }
 
-    startSneeze() {
+    startSneezeTimer() {
         if (this.isDead) return;
-        this.time.delayedCall(Phaser.Math.Between(3000, 6000), () => {
-            let txt = this.add.text(this.scale.width/2, 180, "¡¡ACHÍS!! 🤧", { 
-                fontSize: '70px', fill: '#ff0', fontStyle: 'bold', stroke: '#f00', strokeThickness: 10 
-            }).setOrigin(0.5).setDepth(15);
+        this.time.delayedCall(Phaser.Math.Between(3000, 5000), () => {
+            if(this.textures.exists('jugador')) this.player.play('asustado');
+            let t = this.add.text(this.scale.width/2, 150, "¡¡ACHÍS!! 🤧", { 
+                font: 'bold 60px Arial', fill: '#ff0', stroke: '#000', strokeThickness: 8 
+            }).setOrigin(0.5);
             
-            this.tweens.add({ targets: txt, scale: 1.3, duration: 150, yoyo: true, repeat: 4 });
-            this.time.delayedCall(1500, () => { txt.destroy(); this.detonate(); });
+            this.time.delayedCall(1200, () => { t.destroy(); this.detonate(); });
         });
     }
 
     detonate() {
-        this.nukeFlash.setAlpha(1);
-        this.tweens.add({ targets: this.nukeFlash, alpha: 0, duration: 1200 });
-        
-        this.nukeWave.setRadius(0).setAlpha(0.8);
-        this.tweens.add({ targets: this.nukeWave, radius: 1200, alpha: 0, duration: 1000 });
-        
-        this.cameras.main.shake(600, 0.03);
+        this.flash.setAlpha(1);
+        this.tweens.add({ targets: this.flash, alpha: 0, duration: 600 });
+        this.cameras.main.shake(400, 0.02);
 
         if (!this.isSafe) {
             this.isDead = true;
-            this.lives--;
-            this.hpText.setText(`HP: ${'❤️'.repeat(this.lives)}`);
-            this.applyDeathVisuals();
+            if(this.textures.exists('jugador')) this.player.play('muerto');
+            this.time.delayedCall(2000, () => location.reload());
         } else {
-            // Sobrevives: Efecto de carbonización en NPCs
-            this.npcs.forEach(npc => {
-                npc.body.setFillStyle(0x111111);
-                npc.head.setFillStyle(0xffffff);
-                this.add.text(npc.container.x, npc.container.y - 45, "💀", {fontSize:'22px'}).setOrigin(0.5);
-            });
-            this.startSneeze();
-        }
-    }
-
-    applyDeathVisuals() {
-        this.player.list.forEach(item => {
-            if (item.type === 'Rectangle') item.setFillStyle(0x111111);
-            if (item.type === 'Arc') item.setFillStyle(0xffffff);
-        });
-        this.player.add(this.add.text(0, -48, "💀", {fontSize:'32px'}).setOrigin(0.5));
-
-        this.time.delayedCall(2500, () => {
-            alert("GAS NUCLEAR DETECTADO - JORNADA TERMINADA");
-            location.reload();
-        });
-    }
-
-    update(time, delta) {
-        if (!this.isDead) {
-            this.workTime -= delta / 1000;
-            let h = Math.max(0, Math.floor(this.workTime / 60));
-            let m = Math.max(0, Math.floor(this.workTime % 60));
-            this.clockText.setText(`${h}h ${m < 10 ? '0'+m : m}m`);
+            if(this.textures.exists('jugador')) this.player.play('caminar');
+            this.startSneezeTimer();
         }
     }
 }
@@ -160,7 +115,6 @@ class OficinaScene extends Phaser.Scene {
 const config = {
     type: Phaser.AUTO,
     width: 800, height: 1200,
-    backgroundColor: '#000',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: [OficinaScene]
 };
