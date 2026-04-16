@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>WaterWorld - Calibración Zonas</title>
+    <title>WaterWorld - Edición Explosiva</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
@@ -44,11 +44,16 @@ function comenzar(g) {
 }
 
 function preload() {
+    // Assets base
     this.load.image('fondo', 'fondo.png');
     this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
+    
+    // Personajes
     this.load.image('h_n', 'personajeh.png');  this.load.image('h_a', 'personajeha.png');  this.load.image('h_m', 'personajehm.png');
     this.load.image('m_n', 'personajem.png');  this.load.image('m_a', 'personajema.png');  this.load.image('m_m', 'personajemm.png');
-    this.load.video('v_exp', 'explosion.mp4');
+    
+    // NUEVA IMAGEN DE EXPLOSIÓN
+    this.load.image('img_explosion', 'explosion.jpg');
 }
 
 function create() {
@@ -56,68 +61,65 @@ function create() {
 
     // 1. ESCENARIO
     this.add.image(width/2, height/2, 'fondo').setDisplaySize(width, height).setDepth(-1);
-    this.bunker = this.add.image(width/2, height * 0.85, 'bunker').setScale(0.6).setAlpha(0.6);
+    this.add.image(width/2, height * 0.85, 'bunker').setScale(0.6).setAlpha(0.6);
 
-    // 2. PERSONAJE (Contenedor para latido y nombre)
-    this.pContainer = this.add.container(width/2, height * 0.3); // Inicia arriba (Zona Peligro)
+    // 2. PERSONAJE (Contenedor)
+    this.pContainer = this.add.container(width/2, height * 0.3);
     let textKey = genero === 'h' ? 'h_n' : 'm_n';
     this.sprite = this.add.sprite(0, 0, textKey).setScale(0.7);
     this.pContainer.add(this.sprite);
 
-    // Latido constante
-    this.tweens.add({ targets: this.pContainer, scale: 1.1, duration: 800, yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: this.pContainer, scale: 1.05, duration: 800, yoyo: true, repeat: -1 });
 
-    // 3. UI: VIDAS Y RELOJ (ROJO)
+    // 3. UI: VIDAS Y RELOJ
     this.vidas = 3;
     this.corazones = this.add.text(30, 40, '❤️❤️❤️', { fontSize: '45px' });
     
     this.horas = 8; this.minutos = 0;
     this.relojTexto = this.add.text(width - 250, 40, '08:00 AM', { 
-        fontSize: '45px', 
-        fill: '#ff0000', // RELOJ ROJO
-        fontStyle: 'bold',
-        stroke: '#000',
-        strokeThickness: 6
+        fontSize: '45px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 
     });
 
-    // Reloj acelerado: Cada 1 seg real pasan 30 min de juego
+    // Evento Reloj: Límite 15:00 PM
     this.time.addEvent({
         delay: 1000,
         callback: () => {
+            if(this.vidas <= 0) return;
             this.minutos += 30;
             if(this.minutos >= 60) { this.minutos = 0; this.horas++; }
+            
             let h = this.horas < 10 ? '0'+this.horas : this.horas;
             let m = this.minutos === 0 ? '00' : this.minutos;
-            this.relojTexto.setText(`${h}:${m} AM`);
+            this.relojTexto.setText(`${h}:${m} PM`);
+
+            // COMPROBAR LÍMITE DE TIEMPO (15 PM)
+            if(this.horas >= 15) {
+                this.morirDefinitivamente("TIEMPO AGOTADO");
+            }
         },
         loop: true
     });
 
-    // 4. MOVIMIENTO (Click para alternar entre arriba y abajo)
+    // 4. MOVIMIENTO
     this.input.on('pointerdown', () => {
         if(this.vidas <= 0) return;
         let destinoY = (this.pContainer.y < 600) ? height * 0.82 : height * 0.3;
         this.tweens.add({ targets: this.pContainer, y: destinoY, duration: 500, ease: 'Power2' });
     });
 
-    // 5. SECUENCIA ACHÍS Y DETECCIÓN DE ZONA
+    // 5. CICLO ACHÍS
     this.time.addEvent({
         delay: 6000,
         loop: true,
         callback: () => {
-            if(this.vidas <= 0) return;
-            
-            // Fase 1: Susto
+            if(this.vidas <= 0 || this.horas >= 15) return;
             this.sprite.setTexture(genero === 'h' ? 'h_a' : 'm_a');
             this.cameras.main.shake(400, 0.01);
             
-            // Fase 2: Comprobar posición tras 2 segundos
             this.time.delayedCall(2000, () => {
-                // LÓGICA DE ZONA: Si Y es menor a 600 está en la mitad superior (MUERE)
                 if (this.pContainer.y < 600) {
                     this.quitarVida();
                 } else {
-                    // Está en la mitad inferior (SALVADO)
                     this.sprite.setTexture(genero === 'h' ? 'h_n' : 'm_n');
                 }
             });
@@ -132,25 +134,38 @@ function quitarVida() {
     this.corazones.setText(hearts);
 
     if (this.vidas <= 0) {
-        this.morirDefinitivamente();
+        this.morirDefinitivamente("SISTEMA DESTRUIDO");
     } else {
-        // Daño temporal
         this.cameras.main.flash(500, 255, 0, 0);
         this.sprite.setTexture(genero === 'h' ? 'h_n' : 'm_n');
     }
 }
 
-function morirDefinitivamente() {
-    // 1. Cambiar a sprite de MUERTO
+function morirDefinitivamente(motivo) {
+    if(this.muertoYa) return;
+    this.muertoYa = true;
+    this.vidas = 0;
+
+    // 1. Sprite de Muerto
     this.sprite.setTexture(genero === 'h' ? 'h_m' : 'm_m');
-    this.cameras.main.shake(800, 0.05);
 
-    // 2. Activar VIDEO de Explosión
-    let video = this.add.video(this.pContainer.x, this.pContainer.y, 'v_exp');
-    video.setDepth(100).setScale(2).play();
+    // 2. EFECTO EXPLOSIÓN (IMAGEN)
+    let explosion = this.add.image(this.pContainer.x, this.pContainer.y, 'img_explosion');
+    explosion.setScale(0.1).setDepth(100);
 
-    this.time.delayedCall(3000, () => {
-        alert("TERMINAL DESTRUIDA - I.D. PERDIDO");
+    // Animación: Aumentar escala + Vibración
+    this.tweens.add({
+        targets: explosion,
+        scale: 3,
+        duration: 1000,
+        ease: 'Expo.out'
+    });
+
+    // Sacudida de cámara violenta
+    this.cameras.main.shake(1000, 0.05);
+
+    this.time.delayedCall(2500, () => {
+        alert("GAME OVER: " + motivo);
         location.reload();
     });
 }
