@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - Desarrollo Multinivel</title>
+    <title>WaterWorld - Edición Final con Animación</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
@@ -13,39 +13,29 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 2000; color: #0ff; text-align: center;
         }
-        .input-id { background: #000; border: 2px solid #0ff; color: #0ff; padding: 10px; margin: 10px; font-size: 20px; text-align: center; box-shadow: 0 0 10px #0ff; }
-        .btn-nivel { padding: 15px 30px; margin: 10px; font-size: 18px; color: #f0f; border: 2px solid #f0f; background: transparent; cursor: pointer; box-shadow: 0 0 15px #f0f; border-radius: 5px; font-weight: bold; width: 250px; }
-        .btn-nivel:hover { background: #f0f; color: #fff; }
-        .controles-genero { margin: 20px; border: 1px solid #333; padding: 10px; border-radius: 10px; }
+        .input-id { background: #000; border: 2px solid #0ff; color: #0ff; padding: 10px; margin: 10px; font-size: 20px; text-align: center; box-shadow: 0 0 10px #0ff; border-radius: 5px; }
+        .btn-nivel { padding: 15px 30px; margin: 10px; font-size: 18px; color: #f0f; border: 2px solid #f0f; background: transparent; cursor: pointer; box-shadow: 0 0 15px #f0f; border-radius: 5px; font-weight: bold; width: 280px; }
     </style>
 </head>
 <body>
 
     <div id="ui-portada">
-        <h1 style="font-size: 50px; text-shadow: 0 0 20px #0ff; margin-bottom: 5px;">WATERWORLD</h1>
-        <p style="color: #fff; letter-spacing: 2px;">SISTEMA DE PRUEBAS OPERATIVO</p>
-        
+        <h1 style="font-size: 50px; text-shadow: 0 0 20px #0ff;">WATERWORLD</h1>
         <input type="text" id="p-name" class="input-id" placeholder="I.D. EMPLEADO" maxlength="10">
         
-        <div class="controles-genero">
-            <p>ASIGNAR GÉNERO:</p>
-            <button onclick="setGen('h')" id="btnH" style="color:white; background: #0055ff; padding: 5px 15px; border-radius: 5px; cursor:pointer;">♂ HOMBRE</button>
-            <button onclick="setGen('m')" id="btnM" style="color:white; background: #333; padding: 5px 15px; border-radius: 5px; cursor:pointer;">♀ MUJER</button>
+        <div style="margin: 15px;">
+            <button onclick="setGen('h')" id="btnH" style="background: #0055ff; color: white; padding: 10px 20px; cursor: pointer; border:none; border-radius:5px; margin-right:10px;">♂ HOMBRE</button>
+            <button onclick="setGen('m')" id="btnM" style="background: #333; color: white; padding: 10px 20px; cursor: pointer; border:none; border-radius:5px;">♀ MUJER</button>
         </div>
 
         <button class="btn-nivel" onclick="lanzar('Nivel1')">NIVEL 1: OFICINA</button>
-        <button class="btn-nivel" onclick="lanzar('Nivel3')" style="color:#0ff; border-color:#0ff; box-shadow: 0 0 15px #0ff;">NIVEL 3: PLAZA</button>
+        <button class="btn-nivel" onclick="lanzar('Nivel3')">NIVEL 3: PLAZA</button>
     </div>
 
     <div id="game-container"></div>
 
 <script>
-/** * VARIABLES GLOBALES DE SESIÓN
- */
-let configGlobal = {
-    genero: 'h',
-    nombre: 'OPERADOR'
-};
+let configGlobal = { genero: 'h', nombre: 'OPERADOR' };
 
 function setGen(g) {
     configGlobal.genero = g;
@@ -57,101 +47,95 @@ function lanzar(escena) {
     let n = document.getElementById('p-name').value;
     if(n) configGlobal.nombre = n.toUpperCase();
     document.getElementById('ui-portada').style.display = 'none';
-    iniciarJuego(escena);
+    iniciarPhaser(escena);
 }
 
-/**
- * CONFIGURACIÓN DE PHASER
- */
-function iniciarJuego(escenaInicial) {
+function iniciarPhaser(escenaInicial) {
     const config = {
         type: Phaser.AUTO,
-        width: 800,
-        height: 1200,
+        width: 800, height: 1200,
         parent: 'game-container',
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
         physics: { default: 'arcade', arcade: { gravity: { y: 0 } } },
         scene: [Boot, Nivel1, Nivel3]
     };
     const game = new Phaser.Game(config);
-    
-    // Al arrancar, forzamos la escena elegida
-    game.events.once('ready', () => {
-        game.scene.start(escenaInicial);
-    });
+    game.events.once('ready', () => { game.scene.start(escenaInicial); });
 }
 
-/**
- * ESCENA DE CARGA (BOOT)
- */
 class Boot extends Phaser.Scene {
     constructor() { super('Boot'); }
     preload() {
-        // Nivel 1
         this.load.image('f_oficina', 'fondo.png');
-        this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
-        // Nivel 3
         this.load.image('f_plaza', '1000029440.png');
+        this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
         this.load.image('silla', 'silla.png');
         this.load.image('cafe', 'cafe.png');
         this.load.image('barril', 'barril.png');
         this.load.image('humo', 'imagen.png');
-        // Generales
-        this.load.image('exp', 'explosion.png');
-        this.load.image('h_n', 'personajeh.png');  this.load.image('h_a', 'personajeha.png');  this.load.image('h_m', 'personajehm.png');
-        this.load.image('m_n', 'personajem.png');  this.load.image('m_a', 'personajema.png');  this.load.image('m_m', 'personajemm.png');
+
+        // CARGA SECUENCIAL DE EXPLOSIÓN
+        this.load.image('e1', 'e1.png'); this.load.image('e2', 'e2.png');
+        this.load.image('e3', 'e3.png'); this.load.image('e4', 'e4.png');
+        this.load.image('e5', 'e5.png');
+
+        // Personajes
+        this.load.image('h_n', 'personajeh.png'); this.load.image('h_a', 'personajeha.png'); this.load.image('h_m', 'personajehm.png');
+        this.load.image('m_n', 'personajem.png'); this.load.image('m_a', 'personajema.png'); this.load.image('m_m', 'personajemm.png');
     }
 }
 
-/**
- * ESCENA NIVEL 1: OFICINA
- */
 class Nivel1 extends Phaser.Scene {
     constructor() { super('Nivel1'); }
     create() {
         const { width, height } = this.scale;
+        
+        // Crear Animación de Explosión (Global)
+        if (!this.anims.exists('boom')) {
+            this.anims.create({
+                key: 'boom',
+                frames: [ { key: 'e1' }, { key: 'e2' }, { key: 'e3' }, { key: 'e4' }, { key: 'e5' } ],
+                frameRate: 10,
+                repeat: 0
+            });
+        }
+
         this.add.image(width/2, height/2, 'f_oficina').setDisplaySize(width, height).setDepth(-1);
         this.add.image(width/2, 1100, 'bunker').setScale(0.8).setAlpha(0.6);
 
-        // Personaje
         this.pContainer = this.add.container(width/2, 400);
         let k = configGlobal.genero === 'h' ? 'h_n' : 'm_n';
         this.sprite = this.add.sprite(0, 0, k).setScale(0.8);
-        this.txtID = this.add.text(0, -130, configGlobal.nombre, { fontSize: '26px', fill: '#0ff', fontStyle: 'bold' }).setOrigin(0.5);
-        this.pContainer.add([this.sprite, this.txtID]);
-        this.tweens.add({ targets: this.pContainer, scale: 1.05, duration: 800, yoyo: true, repeat: -1 });
+        this.pContainer.add(this.sprite);
 
-        // UI
         this.vidas = 3;
         this.txtVidas = this.add.text(30, 40, '❤️❤️❤️', { fontSize: '45px' });
         this.horas = 8; this.minutos = 0;
         this.reloj = this.add.text(width - 260, 40, '08:00 AM', { fontSize: '48px', fill: '#f00', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 });
 
-        // Tiempo
+        // Reloj acelerado
         this.time.addEvent({
             delay: 1000, loop: true,
             callback: () => {
                 this.minutos += 30;
                 if(this.minutos >= 60) { this.minutos = 0; this.horas++; }
                 this.reloj.setText(`${(this.horas<10?'0':'')+this.horas}:${this.minutos===0?'00':this.minutos} PM`);
-                
-                // CONDICIÓN DE VICTORIA NIVEL 1
-                if(this.horas >= 15) this.ganarNivel();
+                if(this.horas >= 15) this.morir("TIEMPO AGOTADO");
             }
         });
 
-        this.isSafe = false;
         this.input.on('pointerdown', () => {
             if(this.vidas <= 0) return;
-            this.isSafe = !this.isSafe;
-            this.tweens.add({ targets: this.pContainer, y: this.isSafe ? 1080 : 400, duration: 500 });
+            // COORDENADAS: 400 arriba, 1080 suelo
+            let destinoY = (this.pContainer.y < 600) ? 1080 : 400;
+            this.tweens.add({ targets: this.pContainer, y: destinoY, duration: 500 });
         });
 
-        // Achís
+        // Evento Alerta
         this.time.addEvent({
             delay: 6000, loop: true,
             callback: () => {
-                if(this.vidas <= 0 || this.horas >= 15) return;
+                if(this.vidas <= 0) return;
                 this.sprite.setTexture(configGlobal.genero === 'h' ? 'h_a' : 'm_a');
                 this.cameras.main.shake(300, 0.01);
                 this.time.delayedCall(2000, () => {
@@ -170,25 +154,20 @@ class Nivel1 extends Phaser.Scene {
         else { this.cameras.main.flash(500, 255, 0, 0); this.sprite.setTexture(configGlobal.genero === 'h' ? 'h_n' : 'm_n'); }
     }
 
-    ganarNivel() {
-        this.vidas = 999; // Inmortal al ganar
-        let win = this.add.text(400, 600, '¡JORNADA COMPLETADA!\nRECOGIENDO PEDIDO...', { fontSize: '50px', fill: '#0f0', align: 'center', backgroundColor: '#000' }).setOrigin(0.5);
-        this.time.delayedCall(3000, () => { location.reload(); }); // O cambiar a this.scene.start('Nivel3')
-    }
-
     morir(m) {
+        if(this.yaMuerto) return;
+        this.yaMuerto = true;
         this.sprite.setTexture(configGlobal.genero === 'h' ? 'h_m' : 'm_m');
-        let exp = this.add.image(this.pContainer.x, this.pContainer.y, 'exp').setScale(0.1).setDepth(100);
-        this.tweens.add({ targets: exp, scale: 4, duration: 800 });
+        
+        // LANZAR ANIMACIÓN DE EXPLOSIÓN
+        let explosion = this.add.sprite(this.pContainer.x, this.pContainer.y, 'e1').setScale(3).setDepth(100);
+        explosion.play('boom');
+        
         this.cameras.main.shake(1000, 0.05);
-        this.time.delayedCall(2500, () => { location.reload(); });
+        this.time.delayedCall(2500, () => location.reload());
     }
-    update(){}
 }
 
-/**
- * ESCENA NIVEL 3: PLAZA
- */
 class Nivel3 extends Phaser.Scene {
     constructor() { super('Nivel3'); }
     create() {
@@ -205,7 +184,7 @@ class Nivel3 extends Phaser.Scene {
         this.proyectiles = this.physics.add.group();
 
         this.cuentaSillas = 0;
-        this.txtOrden = this.add.text(400, 80, 'ORDEN: 🪑 0/5', { fontSize: '40px', fill: '#f00', fontStyle: 'bold' }).setOrigin(0.5);
+        this.txtOrden = this.add.text(400, 80, 'ORDEN: 🪑 0/5', { fontSize: '40px', fill: '#f00', fontStyle: 'bold', backgroundColor: '#000' }).setOrigin(0.5);
 
         this.time.addEvent({
             delay: 1500, loop: true,
@@ -213,7 +192,6 @@ class Nivel3 extends Phaser.Scene {
                 let obj = this.proyectiles.create(150, 350, 'silla').setScale(0.6);
                 obj.setVelocity(Phaser.Math.Between(250, 600), -750);
                 obj.setGravityY(1200);
-                obj.setAngularVelocity(200);
                 this.emisor.startFollow(obj);
             }
         });
@@ -222,14 +200,10 @@ class Nivel3 extends Phaser.Scene {
             this.cuentaSillas++;
             this.txtOrden.setText(`ORDEN: 🪑 ${this.cuentaSillas}/5`);
             item.destroy();
-            this.cameras.main.flash(100, 0, 255, 255);
             if(this.cuentaSillas >= 5) alert("¡PEDIDO LISTO!");
         });
 
         this.input.on('pointermove', (p) => { this.player.x = p.x; });
-    }
-    update() {
-        this.proyectiles.getChildren().forEach(o => { if(o.y > 1150) o.destroy(); });
     }
 }
 </script>
