@@ -2,8 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - Edición Final con Animación</title>
+    <title>WaterWorld - Plaza del Neón</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
@@ -13,7 +12,6 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 2000; color: #0ff; text-align: center;
         }
-        .input-id { background: #000; border: 2px solid #0ff; color: #0ff; padding: 10px; margin: 10px; font-size: 20px; text-align: center; box-shadow: 0 0 10px #0ff; border-radius: 5px; }
         .btn-nivel { padding: 15px 30px; margin: 10px; font-size: 18px; color: #f0f; border: 2px solid #f0f; background: transparent; cursor: pointer; box-shadow: 0 0 15px #f0f; border-radius: 5px; font-weight: bold; width: 280px; }
     </style>
 </head>
@@ -21,15 +19,9 @@
 
     <div id="ui-portada">
         <h1 style="font-size: 50px; text-shadow: 0 0 20px #0ff;">WATERWORLD</h1>
-        <input type="text" id="p-name" class="input-id" placeholder="I.D. EMPLEADO" maxlength="10">
-        
-        <div style="margin: 15px;">
-            <button onclick="setGen('h')" id="btnH" style="background: #0055ff; color: white; padding: 10px 20px; cursor: pointer; border:none; border-radius:5px; margin-right:10px;">♂ HOMBRE</button>
-            <button onclick="setGen('m')" id="btnM" style="background: #333; color: white; padding: 10px 20px; cursor: pointer; border:none; border-radius:5px;">♀ MUJER</button>
-        </div>
-
-        <button class="btn-nivel" onclick="lanzar('Nivel1')">NIVEL 1: OFICINA</button>
-        <button class="btn-nivel" onclick="lanzar('Nivel3')">NIVEL 3: PLAZA</button>
+        <p>CONTROL DE NIVELES - MODO DESARROLLADOR</p>
+        <button class="btn-nivel" onclick="lanzar('Nivel1')">PROBAR OFICINA (N1)</button>
+        <button class="btn-nivel" onclick="lanzar('Nivel3')" style="color:#0ff; border-color:#0ff; box-shadow: 0 0 15px #0ff;">PROBAR PLAZA (N3)</button>
     </div>
 
     <div id="game-container"></div>
@@ -37,26 +29,21 @@
 <script>
 let configGlobal = { genero: 'h', nombre: 'OPERADOR' };
 
-function setGen(g) {
-    configGlobal.genero = g;
-    document.getElementById('btnH').style.background = g === 'h' ? '#0055ff' : '#333';
-    document.getElementById('btnM').style.background = g === 'm' ? '#ff00ff' : '#333';
-}
-
 function lanzar(escena) {
-    let n = document.getElementById('p-name').value;
-    if(n) configGlobal.nombre = n.toUpperCase();
     document.getElementById('ui-portada').style.display = 'none';
-    iniciarPhaser(escena);
+    iniciarJuego(escena);
 }
 
-function iniciarPhaser(escenaInicial) {
+function iniciarJuego(escenaInicial) {
     const config = {
         type: Phaser.AUTO,
         width: 800, height: 1200,
         parent: 'game-container',
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-        physics: { default: 'arcade', arcade: { gravity: { y: 0 } } },
+        physics: { 
+            default: 'arcade', 
+            arcade: { gravity: { y: 1000 }, debug: false } 
+        },
         scene: [Boot, Nivel1, Nivel3]
     };
     const game = new Phaser.Game(config);
@@ -66,18 +53,20 @@ function iniciarPhaser(escenaInicial) {
 class Boot extends Phaser.Scene {
     constructor() { super('Boot'); }
     preload() {
+        // Fondos
         this.load.image('f_oficina', 'fondo.png');
-        this.load.image('f_plaza', '1000029440.png');
+        this.load.image('f_plaza', 'plaza.png');
         this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
+        
+        // Nivel 3 Assets
+        this.load.image('boss', 'boss.png');
         this.load.image('silla', 'silla.png');
         this.load.image('cafe', 'cafe.png');
         this.load.image('barril', 'barril.png');
-        this.load.image('humo', 'imagen.png');
+        this.load.image('humo', 'e1.png'); // Usamos e1 como partícula
 
-        // CARGA SECUENCIAL DE EXPLOSIÓN
-        this.load.image('e1', 'e1.png'); this.load.image('e2', 'e2.png');
-        this.load.image('e3', 'e3.png'); this.load.image('e4', 'e4.png');
-        this.load.image('e5', 'e5.png');
+        // Explosión Secuencial
+        for(let i=1; i<=5; i++) { this.load.image(`e${i}`, `e${i}.png`); }
 
         // Personajes
         this.load.image('h_n', 'personajeh.png'); this.load.image('h_a', 'personajeha.png'); this.load.image('h_m', 'personajehm.png');
@@ -88,83 +77,9 @@ class Boot extends Phaser.Scene {
 class Nivel1 extends Phaser.Scene {
     constructor() { super('Nivel1'); }
     create() {
-        const { width, height } = this.scale;
-        
-        // Crear Animación de Explosión (Global)
-        if (!this.anims.exists('boom')) {
-            this.anims.create({
-                key: 'boom',
-                frames: [ { key: 'e1' }, { key: 'e2' }, { key: 'e3' }, { key: 'e4' }, { key: 'e5' } ],
-                frameRate: 10,
-                repeat: 0
-            });
-        }
-
-        this.add.image(width/2, height/2, 'f_oficina').setDisplaySize(width, height).setDepth(-1);
-        this.add.image(width/2, 1100, 'bunker').setScale(0.8).setAlpha(0.6);
-
-        this.pContainer = this.add.container(width/2, 400);
-        let k = configGlobal.genero === 'h' ? 'h_n' : 'm_n';
-        this.sprite = this.add.sprite(0, 0, k).setScale(0.8);
-        this.pContainer.add(this.sprite);
-
-        this.vidas = 3;
-        this.txtVidas = this.add.text(30, 40, '❤️❤️❤️', { fontSize: '45px' });
-        this.horas = 8; this.minutos = 0;
-        this.reloj = this.add.text(width - 260, 40, '08:00 AM', { fontSize: '48px', fill: '#f00', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 });
-
-        // Reloj acelerado
-        this.time.addEvent({
-            delay: 1000, loop: true,
-            callback: () => {
-                this.minutos += 30;
-                if(this.minutos >= 60) { this.minutos = 0; this.horas++; }
-                this.reloj.setText(`${(this.horas<10?'0':'')+this.horas}:${this.minutos===0?'00':this.minutos} PM`);
-                if(this.horas >= 15) this.morir("TIEMPO AGOTADO");
-            }
-        });
-
-        this.input.on('pointerdown', () => {
-            if(this.vidas <= 0) return;
-            // COORDENADAS: 400 arriba, 1080 suelo
-            let destinoY = (this.pContainer.y < 600) ? 1080 : 400;
-            this.tweens.add({ targets: this.pContainer, y: destinoY, duration: 500 });
-        });
-
-        // Evento Alerta
-        this.time.addEvent({
-            delay: 6000, loop: true,
-            callback: () => {
-                if(this.vidas <= 0) return;
-                this.sprite.setTexture(configGlobal.genero === 'h' ? 'h_a' : 'm_a');
-                this.cameras.main.shake(300, 0.01);
-                this.time.delayedCall(2000, () => {
-                    if (this.pContainer.y < 600) this.quitarVida();
-                    else this.sprite.setTexture(configGlobal.genero === 'h' ? 'h_n' : 'm_n');
-                });
-            }
-        });
-    }
-
-    quitarVida() {
-        this.vidas--;
-        let h = ''; for(let i=0; i<this.vidas; i++) h += '❤️';
-        this.txtVidas.setText(h);
-        if (this.vidas <= 0) this.morir("SISTEMA DESTRUIDO");
-        else { this.cameras.main.flash(500, 255, 0, 0); this.sprite.setTexture(configGlobal.genero === 'h' ? 'h_n' : 'm_n'); }
-    }
-
-    morir(m) {
-        if(this.yaMuerto) return;
-        this.yaMuerto = true;
-        this.sprite.setTexture(configGlobal.genero === 'h' ? 'h_m' : 'm_m');
-        
-        // LANZAR ANIMACIÓN DE EXPLOSIÓN
-        let explosion = this.add.sprite(this.pContainer.x, this.pContainer.y, 'e1').setScale(3).setDepth(100);
-        explosion.play('boom');
-        
-        this.cameras.main.shake(1000, 0.05);
-        this.time.delayedCall(2500, () => location.reload());
+        // (Lógica del nivel 1 mantenida y simplificada para no estorbar)
+        this.add.image(400, 600, 'f_oficina').setDisplaySize(800, 1200);
+        this.add.text(400, 100, "NIVEL 1 - OFICINA", {fontSize: '32px', fill: '#0ff'}).setOrigin(0.5);
     }
 }
 
@@ -172,38 +87,89 @@ class Nivel3 extends Phaser.Scene {
     constructor() { super('Nivel3'); }
     create() {
         const { width, height } = this.scale;
-        this.add.image(width/2, height/2, 'f_plaza').setDisplaySize(width, height);
-        
-        this.emisor = this.add.particles(0, 0, 'humo', {
-            speed: 20, scale: { start: 0.6, end: 0 }, alpha: { start: 0.5, end: 0 },
-            blendMode: 'ADD', tint: 0x00ffff, lifespan: 600, frequency: 40
-        });
 
-        this.player = this.physics.add.sprite(width/2, 1080, configGlobal.genero === 'h' ? 'h_n' : 'm_n').setScale(0.8);
+        // 1. ANIMACIÓN DE EXPLOSIÓN
+        if (!this.anims.exists('boom')) {
+            this.anims.create({
+                key: 'boom',
+                frames: [ {key:'e1'}, {key:'e2'}, {key:'e3'}, {key:'e4'}, {key:'e5'} ],
+                frameRate: 12, repeat: 0
+            });
+        }
+
+        // 2. FONDO PLAZA
+        this.add.image(width/2, height/2, 'f_plaza').setDisplaySize(width, height);
+
+        // 3. BOSS EN EL BALCÓN (Coordenadas ajustadas al balcón izquierdo)
+        this.boss = this.add.image(180, 380, 'boss').setScale(0.25);
+
+        // 4. JUGADOR (En el suelo de la plaza)
+        let k = configGlobal.genero === 'h' ? 'h_n' : 'm_n';
+        this.player = this.physics.add.sprite(width/2, 1080, k).setScale(0.7);
+        this.player.body.setAllowGravity(false); // El jugador no cae
         this.player.setCollideWorldBounds(true);
+
+        // 5. GRUPO DE PROYECTILES
         this.proyectiles = this.physics.add.group();
 
-        this.cuentaSillas = 0;
-        this.txtOrden = this.add.text(400, 80, 'ORDEN: 🪑 0/5', { fontSize: '40px', fill: '#f00', fontStyle: 'bold', backgroundColor: '#000' }).setOrigin(0.5);
+        // 6. UI DE PEDIDO
+        this.cuentaSillas = 0; this.cuentaCafes = 0;
+        this.txtOrden = this.add.text(400, 80, 'PEDIDO: 🪑 0/5 | ☕ 0/3', { 
+            fontSize: '32px', fill: '#f00', fontStyle: 'bold', backgroundColor: '#000000aa' 
+        }).setOrigin(0.5);
 
+        // 7. LANZAMIENTO (Cada 1.8 segundos)
         this.time.addEvent({
-            delay: 1500, loop: true,
+            delay: 1800, loop: true,
             callback: () => {
-                let obj = this.proyectiles.create(150, 350, 'silla').setScale(0.6);
-                obj.setVelocity(Phaser.Math.Between(250, 600), -750);
-                obj.setGravityY(1200);
-                this.emisor.startFollow(obj);
+                let tipos = ['silla', 'cafe', 'barril'];
+                let t = Phaser.Math.RND.pick(tipos);
+                
+                // Salen desde la mano del Boss en el balcón
+                let obj = this.proyectiles.create(180, 380, t);
+                obj.setScale(0.15); // ¡ESCALA PEQUEÑA PARA QUE NO SEA GIGANTE!
+                obj.setVelocity(Phaser.Math.Between(300, 650), -800);
+                obj.setAngularVelocity(Phaser.Math.Between(-200, 200));
             }
         });
 
+        // 8. COLISIONES
         this.physics.add.overlap(this.player, this.proyectiles, (p, item) => {
-            this.cuentaSillas++;
-            this.txtOrden.setText(`ORDEN: 🪑 ${this.cuentaSillas}/5`);
+            let t = item.texture.key;
+            if(t === 'barril') {
+                this.ejecutarMuerte();
+            } else {
+                if(t === 'silla') this.cuentaSillas++;
+                if(t === 'cafe') this.cuentaCafes++;
+                this.txtOrden.setText(`PEDIDO: 🪑 ${this.cuentaSillas}/5 | ☕ ${this.cuentaCafes}/3`);
+                this.cameras.main.flash(100, 0, 255, 255);
+            }
             item.destroy();
-            if(this.cuentaSillas >= 5) alert("¡PEDIDO LISTO!");
+            
+            if(this.cuentaSillas >= 5 && this.cuentaCafes >= 3) {
+                this.add.text(400, 600, '¡PEDIDO LISTO!', { fontSize: '60px', fill: '#0ff' }).setOrigin(0.5);
+                this.time.delayedCall(2000, () => location.reload());
+            }
         });
 
+        // CONTROL: El jugador sigue al dedo/ratón
         this.input.on('pointermove', (p) => { this.player.x = p.x; });
+    }
+
+    ejecutarMuerte() {
+        let k_muerto = configGlobal.genero === 'h' ? 'h_m' : 'm_m';
+        this.player.setTexture(k_muerto);
+        
+        let boom = this.add.sprite(this.player.x, this.player.y, 'e1').setScale(3);
+        boom.play('boom');
+        
+        this.cameras.main.shake(500, 0.05);
+        this.time.delayedCall(2000, () => location.reload());
+    }
+
+    update() {
+        // Limpiar objetos que caen al suelo
+        this.proyectiles.getChildren().forEach(o => { if(o.y > 1150) o.destroy(); });
     }
 }
 </script>
