@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Waterworld - Nivel 3</title>
+    <title>Waterworld - Nivel 3 Plaza</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
@@ -16,12 +16,12 @@ class Nivel3 extends Phaser.Scene {
     init() {
         this.vidas = 3;
         this.pedido = { sillas: 0, cafes: 0 };
+        this.objetivo = { sillas: 5, cafes: 3 };
     }
 
     preload() {
-        // IMPORTANTE: Cargamos los archivos desde la raíz (sin 'assets/')
-        // y con los nombres exactos que veo en tu GitHub
-        this.load.image('plaza', 'fondo.png'); 
+        // Cargamos plaza.png como fondo para el Nivel 3
+        this.load.image('fondo_plaza', 'plaza.png'); 
         this.load.image('boss', 'boss.png');
         this.load.image('silla', 'silla.png');
         this.load.image('cafe', 'cafe.png');
@@ -35,13 +35,13 @@ class Nivel3 extends Phaser.Scene {
     }
 
     create() {
-        // Fondo: Usamos fondo.png escalado
-        this.add.image(400, 600, 'plaza').setDisplaySize(800, 1200);
+        // Fondo específico del Nivel 3: Plaza
+        this.add.image(400, 600, 'fondo_plaza').setDisplaySize(800, 1200);
 
-        // Boss: Lo bajamos un poco para que se vea
-        this.boss = this.add.image(120, 350, 'boss').setScale(0.18);
+        // Boss posicionado en el balcón
+        this.boss = this.add.image(120, 320, 'boss').setScale(0.18);
 
-        // Jugador en contenedor
+        // Jugador (Contenedor)
         const pjSprite = this.add.sprite(0, 0, 'pj_normal').setScale(0.18);
         const txtNombre = this.add.text(0, -110, "OPERARIO", { 
             fontSize: '22px', fill: '#0ff', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 
@@ -50,20 +50,20 @@ class Nivel3 extends Phaser.Scene {
         this.player = this.add.container(400, 1080, [pjSprite, txtNombre]);
         this.physics.world.enable(this.player);
         this.player.body.setCollideWorldBounds(true);
-        this.player.body.setSize(120, 180);
+        this.player.body.setSize(100, 150);
 
         this.objetos = this.physics.add.group();
 
         // UI
         this.ui = this.add.text(20, 20, '', { 
-            fontSize: '26px', fill: '#fff', backgroundColor: '#000000b3', padding: 10 
+            fontSize: '24px', fill: '#fff', backgroundColor: '#000000a1', padding: 10 
         });
         this.actualizarUI();
 
-        // Bucle de lanzamiento
-        this.time.addEvent({ delay: 2200, callback: this.lanzar, callbackScope: this, loop: true });
+        // Lógica de lanzamiento
+        this.time.addEvent({ delay: 2000, callback: this.lanzar, callbackScope: this, loop: true });
 
-        // Movimiento
+        // Movimiento lateral
         this.input.on('pointermove', p => { 
             this.player.x = Phaser.Math.Clamp(p.x, 60, 740); 
         });
@@ -78,7 +78,7 @@ class Nivel3 extends Phaser.Scene {
         
         obj.setScale(0.15);
         obj.body.setGravityY(800);
-        obj.body.setVelocity(Phaser.Math.Between(200, 450), Phaser.Math.Between(-450, -650));
+        obj.body.setVelocity(Phaser.Math.Between(150, 450), Phaser.Math.Between(-500, -700));
         obj.setData('tipo', item);
     }
 
@@ -89,16 +89,30 @@ class Nivel3 extends Phaser.Scene {
         if (tipo === 'barril') {
             this.vidas--;
             this.cameras.main.shake(150, 0.02);
-            if (this.vidas <= 0) this.scene.restart();
+            if (this.vidas <= 0) this.morir();
         } else {
             if (tipo === 'silla') this.pedido.sillas++;
             if (tipo === 'cafe') this.pedido.cafes++;
+            this.actualizarUI();
+            this.verificarVictoria();
         }
-        this.actualizarUI();
     }
 
     actualizarUI() {
-        this.ui.setText(`OBJETIVO:\nSillas: ${this.pedido.sillas}/5\nCafés: ${this.pedido.cafes}/3\nVidas: ${this.vidas}`);
+        this.ui.setText(`PLAZA - PEDIDO:\nSillas: ${this.pedido.sillas}/5\nCafés: ${this.pedido.cafes}/3\nVidas: ${this.vidas}`);
+    }
+
+    verificarVictoria() {
+        if (this.pedido.sillas >= this.objetivo.sillas && this.pedido.cafes >= this.objetivo.cafes) {
+            this.add.text(400, 600, '¡NIVEL COMPLETADO!', { fontSize: '50px', fill: '#0f0', stroke: '#000', strokeThickness: 5 }).setOrigin(0.5);
+            this.physics.pause();
+        }
+    }
+
+    morir() {
+        this.physics.pause();
+        this.player.list[0].setTexture('pj_muerto');
+        this.add.text(400, 600, 'GAME OVER', { fontSize: '60px', fill: '#f00', stroke: '#000', strokeThickness: 5 }).setOrigin(0.5);
     }
 
     update() {
