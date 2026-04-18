@@ -1,15 +1,3 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Waterworld - Nivel 3 Plaza</title>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-    <style>
-        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-    </style>
-</head>
-<body>
-<script>
 class Nivel3 extends Phaser.Scene {
     constructor() { super({ key: 'Nivel3' }); }
 
@@ -20,8 +8,8 @@ class Nivel3 extends Phaser.Scene {
     }
 
     preload() {
-        // Cargamos plaza.png como fondo para el Nivel 3
-        this.load.image('fondo_plaza', 'plaza.png'); 
+        // Carga de imágenes desde la raíz
+        this.load.image('plaza', 'plaza.png'); 
         this.load.image('boss', 'boss.png');
         this.load.image('silla', 'silla.png');
         this.load.image('cafe', 'cafe.png');
@@ -35,33 +23,35 @@ class Nivel3 extends Phaser.Scene {
     }
 
     create() {
-        // Fondo específico del Nivel 3: Plaza
-        this.add.image(400, 600, 'fondo_plaza').setDisplaySize(800, 1200);
+        // 1. Fondo Plaza (Nivel 3)
+        this.add.image(400, 600, 'plaza').setDisplaySize(800, 1200);
 
-        // Boss posicionado en el balcón
-        this.boss = this.add.image(120, 320, 'boss').setScale(0.18);
+        // 2. Boss: Ajustado en el balcón izquierdo
+        // Bajamos la escala porque el jefe es muy grande en el archivo original
+        this.boss = this.add.image(110, 310, 'boss').setScale(0.12);
 
-        // Jugador (Contenedor)
-        const pjSprite = this.add.sprite(0, 0, 'pj_normal').setScale(0.18);
-        const txtNombre = this.add.text(0, -110, "OPERARIO", { 
-            fontSize: '22px', fill: '#0ff', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 
+        // 3. Jugador: Contenedor
+        const pjSprite = this.add.sprite(0, 0, 'pj_normal').setScale(0.12);
+        const txtNombre = this.add.text(0, -80, "OPERARIO", { 
+            fontSize: '20px', fill: '#0ff', fontStyle: 'bold', stroke: '#000', strokeThickness: 3 
         }).setOrigin(0.5);
         
         this.player = this.add.container(400, 1080, [pjSprite, txtNombre]);
         this.physics.world.enable(this.player);
         this.player.body.setCollideWorldBounds(true);
-        this.player.body.setSize(100, 150);
+        // Hitbox ajustada para que sea justo el cuerpo del operario
+        this.player.body.setSize(80, 120);
 
         this.objetos = this.physics.add.group();
 
-        // UI
-        this.ui = this.add.text(20, 20, '', { 
-            fontSize: '24px', fill: '#fff', backgroundColor: '#000000a1', padding: 10 
+        // 4. UI: Movida un poco para que el Boss no la tape
+        this.ui = this.add.text(250, 20, '', { 
+            fontSize: '22px', fill: '#fff', backgroundColor: '#000000b3', padding: 8 
         });
         this.actualizarUI();
 
-        // Lógica de lanzamiento
-        this.time.addEvent({ delay: 2000, callback: this.lanzar, callbackScope: this, loop: true });
+        // Lanzamiento cada 2.5 segundos (un poco más lento para dar tiempo)
+        this.time.addEvent({ delay: 2500, callback: this.lanzar, callbackScope: this, loop: true });
 
         // Movimiento lateral
         this.input.on('pointermove', p => { 
@@ -74,12 +64,23 @@ class Nivel3 extends Phaser.Scene {
     lanzar() {
         const items = ['silla', 'cafe', 'barril'];
         const item = Phaser.Utils.Array.GetRandom(items);
-        const obj = this.objetos.create(this.boss.x + 50, this.boss.y, item);
         
-        obj.setScale(0.15);
-        obj.body.setGravityY(800);
-        obj.body.setVelocity(Phaser.Math.Between(150, 450), Phaser.Math.Between(-500, -700));
+        // El proyectil sale desde la posición del Boss
+        const obj = this.objetos.create(this.boss.x + 40, this.boss.y, item);
+        
+        // CORRECCIÓN DE ESCALAS:
+        // Si es café o silla, escala muy pequeña (0.05 a 0.08)
+        if (item === 'cafe') obj.setScale(0.05);
+        else if (item === 'silla') obj.setScale(0.08);
+        else obj.setScale(0.1); // Barril un poco más grande
+
+        obj.body.setGravityY(700);
+        // Impulso parabólico hacia la derecha y arriba
+        obj.body.setVelocity(Phaser.Math.Between(150, 400), Phaser.Math.Between(-500, -700));
         obj.setData('tipo', item);
+        
+        // Rotación para que parezca que vuelan por el aire
+        obj.setAngularVelocity(Phaser.Math.Between(-100, 100));
     }
 
     recolectar(p, o) {
@@ -99,12 +100,14 @@ class Nivel3 extends Phaser.Scene {
     }
 
     actualizarUI() {
-        this.ui.setText(`PLAZA - PEDIDO:\nSillas: ${this.pedido.sillas}/5\nCafés: ${this.pedido.cafes}/3\nVidas: ${this.vidas}`);
+        this.ui.setText(`PLAZA - Sillas: ${this.pedido.sillas}/5 | Cafés: ${this.pedido.cafes}/3 | ❤️: ${this.vidas}`);
     }
 
     verificarVictoria() {
         if (this.pedido.sillas >= this.objetivo.sillas && this.pedido.cafes >= this.objetivo.cafes) {
-            this.add.text(400, 600, '¡NIVEL COMPLETADO!', { fontSize: '50px', fill: '#0f0', stroke: '#000', strokeThickness: 5 }).setOrigin(0.5);
+            this.add.text(400, 600, '¡PEDIDO LISTO!', { 
+                fontSize: '50px', fill: '#0f0', stroke: '#000', strokeThickness: 6 
+            }).setOrigin(0.5);
             this.physics.pause();
         }
     }
@@ -112,22 +115,13 @@ class Nivel3 extends Phaser.Scene {
     morir() {
         this.physics.pause();
         this.player.list[0].setTexture('pj_muerto');
-        this.add.text(400, 600, 'GAME OVER', { fontSize: '60px', fill: '#f00', stroke: '#000', strokeThickness: 5 }).setOrigin(0.5);
+        this.add.text(400, 600, 'GAME OVER', { 
+            fontSize: '60px', fill: '#f00', stroke: '#000', strokeThickness: 6 
+        }).setOrigin(0.5);
     }
 
     update() {
+        // Limpiar objetos que caen al vacío
         this.objetos.getChildren().forEach(obj => { if (obj.y > 1250) obj.destroy(); });
     }
 }
-
-const config = {
-    type: Phaser.AUTO,
-    width: 800,
-    height: 1200,
-    physics: { default: 'arcade', arcade: { debug: false } },
-    scene: [Nivel3]
-};
-new Phaser.Game(config);
-</script>
-</body>
-</html>
