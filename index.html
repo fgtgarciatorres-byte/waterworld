@@ -2,97 +2,81 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Waterworld - Nivel 3</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background-color: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        canvas { box-shadow: 0 0 20px rgba(0, 247, 255, 0.5); }
+        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        canvas { border: 2px solid #0ff; }
     </style>
 </head>
 <body>
-
 <script>
-// --- ESCENA DEL NIVEL 3 ---
 class Nivel3 extends Phaser.Scene {
-    constructor() {
-        super({ key: 'Nivel3' });
-    }
+    constructor() { super({ key: 'Nivel3' }); }
 
-    init(data) {
-        this.genero = data.genero || 'h'; 
-        this.idNombre = data.idNombre || "PILOTO_01";
+    init() {
         this.vidas = 3;
         this.pedido = { sillas: 0, cafes: 0 };
         this.objetivo = { sillas: 5, cafes: 3 };
     }
 
     preload() {
-        // Carga de Assets (Rutas relativas para GitHub Pages)
-        this.load.image('plaza', 'assets/plaza.png');
-        this.load.image('boss', 'assets/boss.png');
-        this.load.image('silla', 'assets/silla.png');
-        this.load.image('cafe', 'assets/cafe.png');
-        this.load.image('barril', 'assets/barril.png');
-        this.load.image('pj_normal', `assets/personaje${this.genero}.png`);
-        this.load.image('pj_muerto', `assets/personaje${this.genero}m.png`);
+        // NOTA: No usamos .setPath('assets/') porque tus archivos están en la raíz
+        this.load.image('plaza', 'fondo.png'); // Usamos fondo.png ya que no veo plaza.png en tu lista
+        this.load.image('boss', 'boss.png');
+        this.load.image('silla', 'silla.png');
+        this.load.image('cafe', 'cafe.png');
+        this.load.image('barril', 'barrilexp.png'); // Usando el barril que veo en tu captura
+        this.load.image('pj_normal', 'personajeh.png'); 
+        this.load.image('pj_muerto', 'personaje.png'); 
         
-        // Frames de explosión
+        // Explosiones
         for (let i = 1; i <= 5; i++) {
-            this.load.image(`e${i}`, `assets/e${i}.png`);
+            this.load.image(`e${i}`, `e${i}.png`);
         }
     }
 
     create() {
-        // Fondo
+        // Fondo escalado
         this.add.image(400, 600, 'plaza').setDisplaySize(800, 1200);
 
-        // Boss
+        // Boss (escalado pequeño para que quepa)
         this.boss = this.add.image(100, 250, 'boss').setScale(0.15);
 
-        // Contenedor Jugador
+        // Contenedor del Jugador
         const pjSprite = this.add.sprite(0, 0, 'pj_normal').setScale(0.15);
-        const txtNombre = this.add.text(0, -90, this.idNombre, { 
+        const txtNombre = this.add.text(0, -90, "OPERARIO", { 
             fontSize: '22px', fill: '#00f7ff', fontStyle: 'bold', stroke: '#000', strokeThickness: 4
         }).setOrigin(0.5);
 
         this.playerContainer = this.add.container(400, 1080, [pjSprite, txtNombre]);
         this.physics.world.enable(this.playerContainer);
         this.playerContainer.body.setCollideWorldBounds(true);
-        // Ajustamos el tamaño de la colisión al sprite
-        this.playerContainer.body.setSize(150, 250);
-        this.playerContainer.body.setOffset(-75, -125);
+        this.playerContainer.body.setSize(100, 150);
 
-        // Grupos
         this.objetos = this.physics.add.group();
 
-        // UI
+        // UI de pedido
         this.uiTexto = this.add.text(20, 20, '', { 
-            fontSize: '28px', fill: '#fff', fontStyle: 'bold', backgroundColor: '#000000a1', padding: 10 
+            fontSize: '24px', fill: '#fff', backgroundColor: '#000000a1', padding: 10 
         });
         this.actualizarUI();
 
-        // Timer de lanzamiento
-        this.timerLanzamiento = this.time.addEvent({
-            delay: 1800,
-            callback: this.lanzarObjeto,
-            callbackScope: this,
-            loop: true
-        });
+        // Lanzar objetos cada 2 segundos
+        this.time.addEvent({ delay: 2000, callback: this.lanzarObjeto, callbackScope: this, loop: true });
 
-        // Controles
+        // Control táctil/ratón
         this.input.on('pointermove', (pointer) => {
-            this.playerContainer.x = Phaser.Math.Clamp(pointer.x, 60, 740);
+            this.playerContainer.x = Phaser.Math.Clamp(pointer.x, 50, 750);
         });
 
-        // Colisiones
         this.physics.add.overlap(this.playerContainer, this.objetos, this.recolectar, null, this);
 
-        // Animación de muerte
+        // Animación de explosión
         this.anims.create({
-            key: 'explocion_anim',
-            frames: [ {key:'e1'}, {key:'e2'}, {key:'e3'}, {key:'e4'}, {key:'e5'} ],
-            frameRate: 12,
+            key: 'boom',
+            frames: [{key:'e1'}, {key:'e2'}, {key:'e3'}, {key:'e4'}, {key:'e5'}],
+            frameRate: 10,
             hideOnComplete: true
         });
     }
@@ -100,15 +84,12 @@ class Nivel3 extends Phaser.Scene {
     lanzarObjeto() {
         const tipos = ['silla', 'cafe', 'barril'];
         const tipo = Phaser.Utils.Array.GetRandom(tipos);
-        const obj = this.objetos.create(this.boss.x + 50, this.boss.y, tipo);
+        const obj = this.objetos.create(this.boss.x + 40, this.boss.y, tipo);
         
-        obj.setScale(0.12);
+        obj.setScale(0.15); // Escalado para las imágenes de IA
         obj.body.setGravityY(700);
-        obj.body.setVelocity(Phaser.Math.Between(150, 500), Phaser.Math.Between(-500, -700));
+        obj.body.setVelocity(Phaser.Math.Between(150, 500), Phaser.Math.Between(-400, -600));
         obj.setData('tipo', tipo);
-        
-        // Rotación aleatoria para efecto visual
-        obj.setAngularVelocity(Phaser.Math.Between(-100, 100));
     }
 
     recolectar(player, objeto) {
@@ -116,7 +97,9 @@ class Nivel3 extends Phaser.Scene {
         objeto.destroy();
 
         if (tipo === 'barril') {
-            this.recibirDanio();
+            this.vidas--;
+            this.cameras.main.shake(100, 0.02);
+            if (this.vidas <= 0) this.morir();
         } else {
             if (tipo === 'silla') this.pedido.sillas++;
             if (tipo === 'cafe') this.pedido.cafes++;
@@ -126,56 +109,37 @@ class Nivel3 extends Phaser.Scene {
     }
 
     actualizarUI() {
-        this.uiTexto.setText(`📦 OBJETIVO:\nSillas: ${this.pedido.sillas}/${this.objetivo.sillas}\nCafés: ${this.pedido.cafes}/${this.objetivo.cafes}\n❤️ Vidas: ${this.vidas}`);
-    }
-
-    recibirDanio() {
-        this.vidas--;
-        this.actualizarUI();
-        this.cameras.main.shake(150, 0.01);
-        if (this.vidas <= 0) this.morir();
+        this.uiTexto.setText(`PEDIDO:\nSillas: ${this.pedido.sillas}/${this.objetivo.sillas}\nCafés: ${this.pedido.cafes}/${this.objetivo.cafes}\n❤️: ${this.vidas}`);
     }
 
     verificarVictoria() {
         if (this.pedido.sillas >= this.objetivo.sillas && this.pedido.cafes >= this.objetivo.cafes) {
-            this.timerLanzamiento.remove();
-            this.add.text(400, 600, 'MISIÓN CUMPLIDA', { fontSize: '60px', fill: '#0f0', fontStyle: 'bold' }).setOrigin(0.5);
+            this.add.text(400, 600, '¡ENTREGA LISTA!', { fontSize: '50px', fill: '#0f0' }).setOrigin(0.5);
+            this.physics.pause();
         }
     }
 
     morir() {
         this.physics.pause();
-        this.timerLanzamiento.remove();
         this.playerContainer.list[0].setTexture('pj_muerto');
-        
-        const boom = this.add.sprite(this.playerContainer.x, this.playerContainer.y, 'e1').setScale(0.8);
-        boom.play('explocion_anim');
-        
-        this.add.text(400, 600, 'GAME OVER', { fontSize: '80px', fill: '#f00', fontStyle: 'bold' }).setOrigin(0.5);
+        let exp = this.add.sprite(this.playerContainer.x, this.playerContainer.y, 'e1').setScale(0.8);
+        exp.play('boom');
+        this.add.text(400, 600, 'SIN VIDAS', { fontSize: '60px', fill: '#f00' }).setOrigin(0.5);
     }
 
     update() {
-        this.objetos.getChildren().forEach(obj => {
-            if (obj.y > 1250) obj.destroy();
-        });
+        this.objetos.getChildren().forEach(obj => { if (obj.y > 1200) obj.destroy(); });
     }
 }
 
-// --- CONFIGURACIÓN GLOBAL ---
 const config = {
     type: Phaser.AUTO,
     width: 800,
     height: 1200,
-    physics: {
-        default: 'arcade',
-        arcade: { debug: false }
-    },
+    physics: { default: 'arcade', arcade: { debug: false } },
     scene: [Nivel3]
 };
-
-const game = new Phaser.Game(config);
+new Phaser.Game(config);
 </script>
-
 </body>
 </html>
-
