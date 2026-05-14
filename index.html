@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - PNG Edition</title>
+    <title>WaterWorld - Edición Final</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
@@ -24,11 +24,9 @@
             <button onclick="setSex('h')" id="bh" style="background:#05f; color:white; padding:10px; border:none; cursor:pointer;">♂ HOMBRE</button>
             <button onclick="setSex('m')" id="bm" style="background:#333; color:white; padding:10px; border:none; cursor:pointer;">♀ MUJER</button>
         </div>
-        <button class="btn-neon" onclick="startLevel('Nivel1')">PROBAR NIVEL 1: OFICINA</button>
-        <button class="btn-neon" onclick="startLevel('Nivel3')" style="color:#0ff; border-color:#0ff; box-shadow: 0 0 15px #0ff;">PROBAR NIVEL 3: PLAZA</button>
+        <button class="btn-neon" onclick="startLevel('Nivel1')">PROBAR OFICINA (N1)</button>
+        <button class="btn-neon" onclick="startLevel('Nivel3')" style="color:#0ff; border-color:#0ff; box-shadow: 0 0 15px #0ff;">PROBAR PLAZA (N3)</button>
     </div>
-
-    <div id="game-container"></div>
 
 <script>
 let globalData = { sex: 'h' };
@@ -41,22 +39,28 @@ function setSex(s) {
 
 function startLevel(key) {
     document.getElementById('ui-portal').style.display = 'none';
+    initGame(key);
+}
+
+function initGame(initialScene) {
     const config = {
         type: Phaser.AUTO,
         width: 800, height: 1200,
         parent: 'game-container',
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-        physics: { default: 'arcade', arcade: { gravity: { y: 1200 }, debug: false } },
+        physics: { 
+            default: 'arcade', 
+            arcade: { gravity: { y: 1200 }, debug: false } 
+        },
         scene: [Boot, Nivel1, Nivel3]
     };
-    const game = new Phaser.Game(config);
-    game.events.once('ready', () => { game.scene.start(key); });
+    new Phaser.Game(config);
 }
 
 class Boot extends Phaser.Scene {
     constructor() { super('Boot'); }
     preload() {
-        // Fondos actualizados a .png
+        // --- CARGA DE ASSETS (Nombres exactos de tu GitHub) ---
         this.load.image('f_oficina', 'fondo.png');
         this.load.image('f_plaza', 'plaza.png');
         this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
@@ -74,60 +78,59 @@ class Boot extends Phaser.Scene {
         this.load.image('p_n', `personaje${s}.png`);
         this.load.image('p_a', `personaje${s}a.png`);
         this.load.image('p_m', `personaje${s}m.png`);
+
+        // Detector de errores
+        this.load.on('loaderror', (file) => {
+            console.error("Fallo al cargar: " + file.src + " | Revisa si el nombre tiene mayúsculas en GitHub.");
+        });
+    }
+    create() {
+        // Crear animación global una sola vez
+        this.anims.create({
+            key: 'boom',
+            frames: [ {key:'e1'}, {key:'e2'}, {key:'e3'}, {key:'e4'}, {key:'e5'} ],
+            frameRate: 12, repeat: 0
+        });
     }
 }
 
 class Nivel1 extends Phaser.Scene {
     constructor() { super('Nivel1'); }
     create() {
-        this.createAnims();
-        this.add.image(400, 600, 'f_oficina').setDisplaySize(800, 1200);
-        this.add.image(400, 1150, 'bunker').setScale(0.8);
+        const { width, height } = this.scale;
+        this.add.image(width/2, height/2, 'f_oficina').setDisplaySize(width, height);
+        this.add.image(width/2, 1100, 'bunker').setScale(0.8).setAlpha(0.6);
 
-        this.player = this.add.container(400, 400);
+        this.player = this.add.container(width/2, 400);
         this.sprite = this.add.sprite(0, 0, 'p_n').setScale(0.8);
         this.player.add(this.sprite);
 
+        // UI
         this.vidas = 3;
         this.vText = this.add.text(30, 40, '❤️❤️❤️', { fontSize: '40px' });
-        this.h = 8; this.m = 0;
-        this.rText = this.add.text(550, 40, '08:00 AM', { fontSize: '45px', fill: '#f00', fontStyle: 'bold' });
-        
-        this.time.addEvent({ delay: 1000, loop: true, callback: () => {
-            this.m += 30; if(this.m >= 60) { this.m = 0; this.h++; }
-            this.rText.setText(`${this.h<10?'0':''}${this.h}:${this.m==0?'00':this.m} PM`);
-            if(this.h >= 15) { alert("¡TURNO TERMINADO!"); location.reload(); }
-        }});
 
         this.input.on('pointerdown', () => {
-            let targetY = (this.player.y < 600) ? 1100 : 400;
+            let targetY = (this.player.y < 600) ? 1080 : 400;
             this.tweens.add({ targets: this.player, y: targetY, duration: 500 });
         });
 
-        this.time.addEvent({ delay: 6000, loop: true, callback: () => {
-            this.sprite.setTexture('p_a');
-            this.time.delayedCall(2000, () => {
-                if(this.player.y < 600) this.morir();
-                else this.sprite.setTexture('p_n');
-            });
-        }});
+        this.time.addEvent({
+            delay: 6000, loop: true,
+            callback: () => {
+                this.sprite.setTexture('p_a');
+                this.time.delayedCall(2000, () => {
+                    if(this.player.y < 600) this.muerte();
+                    else this.sprite.setTexture('p_n');
+                });
+            }
+        });
     }
 
-    createAnims() {
-        if (!this.anims.exists('boom')) {
-            this.anims.create({
-                key: 'boom',
-                frames: [{key:'e1'},{key:'e2'},{key:'e3'},{key:'e4'},{key:'e5'}],
-                frameRate: 12, repeat: 0
-            });
-        }
-    }
-
-    morir() {
+    muerte() {
         this.sprite.setTexture('p_m');
-        let exp = this.add.sprite(this.player.x, this.player.y, 'e1').setScale(3);
+        let exp = this.add.sprite(this.player.x, this.player.y, 'e1').setScale(4).setDepth(100);
         exp.play('boom');
-        this.time.delayedCall(1500, () => location.reload());
+        this.time.delayedCall(2000, () => location.reload());
     }
 }
 
@@ -135,43 +138,49 @@ class Nivel3 extends Phaser.Scene {
     constructor() { super('Nivel3'); }
     create() {
         const { width, height } = this.scale;
+        
+        // 1. Fondo ajustado
         this.add.image(width/2, height/2, 'f_plaza').setDisplaySize(width, height);
         
-        this.boss = this.add.image(180, 380, 'boss').setScale(0.25);
+        // 2. Boss en el balcón (Izquierda, según tu plaza.png)
+        this.boss = this.add.image(120, 200, 'boss').setScale(0.25);
+
+        // 3. Jugador en el suelo de la calle
         this.player = this.physics.add.sprite(width/2, 1100, 'p_n').setScale(0.8);
         this.player.body.setAllowGravity(false);
         this.player.setCollideWorldBounds(true);
 
         this.items = this.physics.add.group();
         this.sillas = 0;
-        this.ui = this.add.text(400, 80, 'OBJETIVO: 🪑 0/5', { fontSize: '32px', fill: '#f00', fontStyle: 'bold', backgroundColor: '#000000aa' }).setOrigin(0.5);
+        this.txt = this.add.text(400, 80, 'PEDIDO: 🪑 0/5', { fontSize: '40px', fill: '#f00', fontStyle: 'bold' }).setOrigin(0.5);
 
-        this.time.addEvent({ delay: 2000, loop: true, callback: () => {
-            let t = Phaser.Math.RND.pick(['silla', 'cafe', 'barril']);
-            let obj = this.items.create(180, 380, t);
-            
-            // ESCALADO PARA IMÁGENES DE IA
-            if(t === 'barril') obj.setScale(0.7); 
-            else obj.setScale(0.15); // La silla y el café se encogen
-            
-            obj.setVelocity(Phaser.Math.Between(300, 600), -850);
-            obj.setAngularVelocity(Phaser.Math.Between(-200, 200));
-        }});
+        // 4. Lanzamientos del Boss
+        this.time.addEvent({
+            delay: 1800, loop: true,
+            callback: () => {
+                let t = Phaser.Math.RND.pick(['silla', 'cafe', 'barril']);
+                let obj = this.items.create(120, 200, t);
+                
+                // --- ESCALADO INDIVIDUAL ---
+                if (t === 'barril') obj.setScale(0.7); // El barril es pequeño, no lo reducimos tanto
+                else obj.setScale(0.12); // Silla y Café son IA, los reducimos mucho
 
-        this.physics.add.overlap(this.player, this.items, (p, item) => {
-            if(item.texture.key === 'barril') location.reload();
+                obj.setVelocity(Phaser.Math.Between(250, 600), -850);
+                obj.setAngularVelocity(Phaser.Math.Between(-200, 200));
+            }
+        });
+
+        this.physics.add.overlap(this.player, this.items, (p, i) => {
+            if(i.texture.key === 'barril') location.reload();
             else {
                 this.sillas++;
-                this.ui.setText(`OBJETIVO: 🪑 ${this.sillas}/5`);
-                item.destroy();
-                if(this.sillas >= 5) { alert("¡NIVEL COMPLETADO!"); location.reload(); }
+                this.txt.setText(`PEDIDO: 🪑 ${this.sillas}/5`);
+                i.destroy();
+                if(this.sillas >= 5) { alert("¡NIVEL 3 GANADO!"); location.reload(); }
             }
         });
 
         this.input.on('pointermove', (p) => { this.player.x = p.x; });
-    }
-    update() {
-        this.items.getChildren().forEach(o => { if(o.y > 1180) o.destroy(); });
     }
 }
 </script>
