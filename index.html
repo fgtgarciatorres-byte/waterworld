@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>WaterWorld - Versión Estable</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WaterWorld - Sistema Reparado</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
@@ -12,153 +13,225 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 2000; color: #0ff; text-align: center;
         }
+        /* REINTRODUCIDO ESTILO PARA EL INPUT */
+        input.input-id { background: #000; border: 2px solid #0ff; color: #0ff; padding: 10px; margin: 10px; font-size: 20px; text-align: center; box-shadow: 0 0 10px #0ff; border-radius: 5px; }
         .btn-neon { padding: 15px 30px; margin: 10px; font-size: 18px; color: #f0f; border: 2px solid #f0f; background: transparent; cursor: pointer; box-shadow: 0 0 15px #f0f; border-radius: 5px; font-weight: bold; width: 280px; }
+        .btn-neon:hover { background: #f0f; color: #fff; }
     </style>
 </head>
 <body>
 
     <div id="ui-portal">
         <h1 style="font-size: 50px; text-shadow: 0 0 20px #0ff;">WATERWORLD</h1>
+        
+        <input type="text" id="p-name" class="input-id" placeholder="I.D. EMPLEADO" maxlength="3">
+        
         <div style="margin-bottom: 20px;">
             <button onclick="setSex('h')" id="bh" style="background:#05f; color:white; padding:10px; border:none; cursor:pointer;">♂ HOMBRE</button>
             <button onclick="setSex('m')" id="bm" style="background:#333; color:white; padding:10px; border:none; cursor:pointer;">♀ MUJER</button>
         </div>
-        <button class="btn-neon" onclick="startLevel('Nivel1')">PROBAR NIVEL 1</button>
-        <button class="btn-neon" onclick="startLevel('Nivel3')">PROBAR NIVEL 3</button>
+        
+        <button class="btn-neon" onclick="lanzar('Nivel1')">ACCESO: OFICINA (N1)</button>
+        <button class="btn-neon" onclick="lanzar('Nivel3')" style="color:#0ff; border-color:#0ff; box-shadow: 0 0 15px #0ff;">ACCESO: PLAZA (N3)</button>
     </div>
 
+    <div id="game-container"></div>
+
 <script>
-let globalData = { sex: 'h' };
+/** * VARIABLES GLOBALES
+ */
+let globalData = { sex: 'h', name: 'OPERADOR' };
 
 function setSex(s) {
     globalData.sex = s;
     document.getElementById('bh').style.background = s === 'h' ? '#05f' : '#333';
-    document.getElementById('bm').style.background = s === 'm' ? '#f0f' : '#333';
+    document.getElementById('bm').style.background = s === 'm' ? '#ff00ff' : '#333';
 }
 
-function startLevel(key) {
+function lanzar(escena) {
+    // REPARADA FUNCIÓN DE LANZAMIENTO (Nombre + Salto)
+    let n = document.getElementById('p-name').value;
+    if(n) globalData.name = n.toUpperCase();
+    
     document.getElementById('ui-portal').style.display = 'none';
+    initPhaser(escena);
+}
+
+function initPhaser(escenaInicial) {
     const config = {
         type: Phaser.AUTO,
         width: 800, height: 1200,
         parent: 'game-container',
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
         physics: { default: 'arcade', arcade: { gravity: { y: 1200 }, debug: false } },
+        // IMPORTANTE: Asegúrate de listar las 3 escenas
         scene: [Boot, Nivel1, Nivel3]
     };
-    new Phaser.Game(config);
+    const game = new Phaser.Game(config);
+    // REPARADO: Ahora game.scene.start() cargará la escena exacta que pulsaste
+    game.events.once('ready', () => { game.scene.start(escenaInicial); });
 }
 
+/** * CARGA DE ASSETS (BOOT)
+ */
 class Boot extends Phaser.Scene {
     constructor() { super('Boot'); }
     preload() {
-        // Fondos (Confirmados en tu GitHub)
+        // Carga Masiva y Blindada (No tocar si funciona)
         this.load.image('f_oficina', 'fondo.png');
         this.load.image('f_plaza', 'plaza.png');
-        this.load.image('bunker', 'bunker.png'); // RECUERDA: Sube tu imagen como bunker.png
-        
-        // Objetos
+        this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
         this.load.image('boss', 'boss.png');
         this.load.image('silla', 'silla.png');
         this.load.image('cafe', 'cafe.png');
-        this.load.image('barril', 'barril.png');
+        this.load.image('barril', 'barrilexp.png');
+        
+        // Explosión e1 a e5
+        for(let i=1; i<=5; i++) { this.load.image(`e${i}`, `e${i}.png`); }
 
         // Personajes
         const s = globalData.sex;
         this.load.image('p_n', `personaje${s}.png`);
         this.load.image('p_a', `personaje${s}a.png`);
         this.load.image('p_m', `personaje${s}m.png`);
-
-        // Explosión e1 a e5
-        for(let i=1; i<=5; i++) { this.load.image(`e${i}`, `e${i}.png`); }
-    }
-    create() {
-        // Crear animación de explosión corregida
-        this.anims.create({
-            key: 'boom',
-            frames: [
-                { key: 'e1' }, { key: 'e2' }, { key: 'e3' }, { key: 'e4' }, { key: 'e5' }
-            ],
-            frameRate: 10,
-            repeat: 0
-        });
-        this.scene.start('Nivel1'); // Por defecto
     }
 }
 
+/** 🏢 NIVEL 1: OFICINA (REPARADO Y BLINDADO) */
 class Nivel1 extends Phaser.Scene {
     constructor() { super('Nivel1'); }
     create() {
-        this.add.image(400, 600, 'f_oficina').setDisplaySize(800, 1200);
-        this.add.image(400, 1100, 'bunker').setScale(0.8);
+        this.createExplosionAnim();
+        this.add.image(400, 600, 'f_oficina').setDisplaySize(800, 1200).setDepth(-1);
+        this.add.image(400, 1150, 'bunker').setScale(0.8).setAlpha(0.6);
 
-        this.player = this.add.container(400, 400);
+        // Personaje (Contenedor)
+        this.player = this.add.container(400, 400); // Empieza arriba
+        let k = globalData.sex === 'h' ? 'p_n' : 'p_n';
         this.sprite = this.add.sprite(0, 0, 'p_n').setScale(0.8);
-        this.player.add(this.sprite);
+        this.txtID = this.add.text(0, -130, globalData.name, { fontSize: '26px', fill: '#0ff', fontStyle: 'bold' }).setOrigin(0.5);
+        this.player.add([this.sprite, this.txtID]);
+        this.tweens.add({ targets: this.player, scale: 1.05, duration: 800, yoyo: true, repeat: -1 });
 
+        // REINTRODUCIDO: UI (VIDAS Y RELOJ ROJO)
+        this.setupUI_N1();
+        this.setupLogic_N1();
+    }
+
+    setupUI_N1() {
+        this.vidas = 3;
+        this.txtVidas = this.add.text(30, 40, '❤️❤️❤️', { fontSize: '45px' });
+        
+        this.horas = 8; this.minutos = 0;
+        this.txtReloj = this.add.text(550, 40, '08:00 AM', { fontSize: '48px', fill: '#f00', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 });
+        
+        // Reloj acelerado
+        this.time.addEvent({ delay: 1000, loop: true, callback: () => {
+            if(this.vidas <= 0) return;
+            this.minutos += 30; if(this.minutos >= 60) { this.minutos = 0; this.horas++; }
+            this.txtReloj.setText(`${this.horas<10?'0':''}${this.horas}:${this.minutos==0?'00':this.minutos} PM`);
+            if(this.horas >= 15) this.morirNivel1("JORNADA COMPLETADA");
+        }});
+    }
+
+    setupLogic_N1() {
+        // Movimiento calibrado: 400 arriba, 1100 suelo
         this.input.on('pointerdown', () => {
-            let targetY = (this.player.y < 600) ? 1080 : 400;
+            if(this.vidas <= 0) return;
+            let targetY = (this.player.y < 600) ? 1100 : 400;
             this.tweens.add({ targets: this.player, y: targetY, duration: 500 });
         });
 
-        // Evento muerte por estornudo
-        this.time.addEvent({
-            delay: 6000, loop: true,
-            callback: () => {
-                this.sprite.setTexture('p_a');
-                this.time.delayedCall(2000, () => {
-                    if(this.player.y < 600) {
-                        this.sprite.setTexture('p_m');
-                        let exp = this.add.sprite(this.player.x, this.player.y, 'e1').setScale(3);
-                        exp.play('boom');
-                        this.time.delayedCall(1500, () => location.reload());
-                    } else {
-                        this.sprite.setTexture('p_n');
-                    }
-                });
-            }
-        });
+        // Evento Achís
+        this.time.addEvent({ delay: 6000, loop: true, callback: () => {
+            if(this.vidas <= 0 || this.horas >= 15) return;
+            this.sprite.setTexture('p_a');
+            this.cameras.main.shake(300, 0.01);
+            this.time.delayedCall(2000, () => {
+                if(this.player.y < 600) this.quitarVidaN1();
+                else this.sprite.setTexture('p_n');
+            });
+        }});
+    }
+
+    // REINTRODUCIDO: Lógica de Vidas
+    quitarVidaN1() {
+        this.vidas--;
+        let h = ''; for(let i=0; i<this.vidas; i++) h += '❤️';
+        this.txtVidas.setText(h);
+        if (this.vidas <= 0) this.morirNivel1("SISTEMA DESTRUIDO");
+        else { this.cameras.main.flash(500, 255, 0, 0); this.sprite.setTexture('p_n'); }
+    }
+
+    // REINTRODUCIDO: Lógica de Muerte
+    morirNivel1(motivo) {
+        if(this.yaMuerto) return; this.yaMuerto = true;
+        this.sprite.setTexture('p_m');
+        let exp = this.add.sprite(this.player.x, this.player.y, 'e1').setScale(4).setDepth(100);
+        exp.play('boom');
+        this.cameras.main.shake(1000, 0.05);
+        this.time.delayedCall(2000, () => location.reload());
+    }
+
+    createExplosionAnim() {
+        if (!this.anims.exists('boom')) {
+            this.anims.create({
+                key: 'boom',
+                frames: [{key:'e1'},{key:'e2'},{key:'e3'},{key:'e4'},{key:'e5'}],
+                frameRate: 10, repeat: 0
+            });
+        }
     }
 }
 
+/** ⛲ NIVEL 3: LA PLAZA (RECONECTADO Y ESTABLE) */
 class Nivel3 extends Phaser.Scene {
     constructor() { super('Nivel3'); }
     create() {
-        this.add.image(400, 600, 'f_plaza').setDisplaySize(800, 1200);
-        this.boss = this.add.image(150, 300, 'boss').setScale(0.3);
-        this.player = this.physics.add.sprite(400, 1100, 'p_n').setScale(0.8);
-        this.player.body.setAllowGravity(false);
+        const { width, height } = this.scale;
+        this.add.image(width/2, height/2, 'f_plaza').setDisplaySize(width, height).setDepth(-1);
+        
+        // El Boss en el balcón (izq, coordenadas aproximadas)
+        this.add.image(180, 380, 'boss').setScale(0.25);
+
+        // Jugador en el suelo de la calle
+        this.player = this.physics.add.sprite(width/2, 1100, 'p_n').setScale(0.8);
+        this.player.body.setAllowGravity(false); // El jugador no cae
+        this.player.setCollideWorldBounds(true);
 
         this.items = this.physics.add.group();
         this.sillas = 0;
-        this.txt = this.add.text(400, 80, 'PEDIDO: 🪑 0/5', { fontSize: '40px', fill: '#f00' }).setOrigin(0.5);
+        this.txtPedido = this.add.text(400, 80, 'OBJETIVO: 🪑 0/5', { fontSize: '40px', fill: '#f00' }).setOrigin(0.5);
 
-        this.time.addEvent({
-            delay: 2000, loop: true,
-            callback: () => {
-                let t = Phaser.Math.RND.pick(['silla', 'cafe', 'barril']);
-                let obj = this.items.create(150, 300, t);
-                
-                // --- ESCALADO DIFERENCIADO ---
-                if (t === 'barril') {
-                    obj.setScale(1); // Tamaño normal
-                } else {
-                    obj.setScale(0.1); // Silla y café de IA (muy grandes) se encogen
-                }
+        // Lanzamientos Parabólicos
+        this.time.addEvent({ delay: 1800, loop: true, callback: () => {
+            let tipos = ['silla', 'cafe', 'barril'];
+            let t = Phaser.Math.RND.pick(tipos);
+            
+            // Salen desde el balcón (boss)
+            let obj = this.items.create(180, 380, t);
+            
+            // Escalado Inteligente (según tipo)
+            if(t === 'barril') obj.setScale(0.8);
+            else obj.setScale(0.12); // Silla/Café se encogen drásticamente
+            
+            obj.setVelocity(Phaser.Math.Between(300, 600), -850);
+            obj.setAngularVelocity(Phaser.Math.Between(-200, 200));
+        }});
 
-                obj.setVelocity(Phaser.Math.Between(200, 500), -800);
-            }
-        });
-
-        this.physics.add.overlap(this.player, this.items, (p, i) => {
-            if(i.texture.key === 'barril') location.reload();
+        // Lógica de colisión simple en la Plaza
+        this.physics.add.overlap(this.player, this.items, (p, item) => {
+            if(item.texture.key === 'barril') { location.reload(); }
             else {
                 this.sillas++;
-                this.txt.setText(`PEDIDO: 🪑 ${this.sillas}/5`);
-                i.destroy();
+                this.txtPedido.setText(`OBJETIVO: 🪑 ${this.sillas}/5`);
+                item.destroy();
+                this.cameras.main.flash(100, 0, 255, 255);
+                if(this.sillas >= 5) { alert("¡NIVEL COMPLETADO!"); location.reload(); }
             }
         });
 
+        // Control suave: El personaje sigue el puntero
         this.input.on('pointermove', (p) => { this.player.x = p.x; });
     }
 }
