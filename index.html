@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - Sistema Estable</title>
+    <title>WaterWorld - Versión Estable</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
@@ -13,7 +13,8 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 2000; color: #0ff; text-align: center;
         }
-        input.input-id { background: #000; border: 2px solid #0ff; color: #0ff; padding: 10px; margin: 10px; font-size: 20px; text-align: center; box-shadow: 0 0 10px #0ff; border-radius: 5px; outline: none; }
+        /* RECUPERADO: Estilo de la casilla de iniciales */
+        .input-id { background: #000; border: 2px solid #0ff; color: #0ff; padding: 10px; margin: 10px; font-size: 20px; text-align: center; box-shadow: 0 0 10px #0ff; border-radius: 5px; outline: none; }
         .btn-neon { padding: 15px 30px; margin: 10px; font-size: 18px; color: #f0f; border: 2px solid #f0f; background: transparent; cursor: pointer; box-shadow: 0 0 15px #f0f; border-radius: 5px; font-weight: bold; width: 280px; }
     </style>
 </head>
@@ -25,8 +26,8 @@
         <input type="text" id="p-name" class="input-id" placeholder="I.D. (3 letras)" maxlength="3">
         
         <div style="margin-bottom: 20px;">
-            <button onclick="setSex('h')" id="bh" style="background:#05f; color:white; padding:10px; border:none; cursor:pointer; border-radius: 5px;">♂ HOMBRE</button>
-            <button onclick="setSex('m')" id="bm" style="background:#333; color:white; padding:10px; border:none; cursor:pointer; border-radius: 5px;">♀ MUJER</button>
+            <button onclick="setSex('h')" id="bh" style="background:#05f; color:white; padding:10px; border:none; cursor:pointer; border-radius:5px;">♂ HOMBRE</button>
+            <button onclick="setSex('m')" id="bm" style="background:#333; color:white; padding:10px; border:none; cursor:pointer; border-radius:5px;">♀ MUJER</button>
         </div>
         
         <button class="btn-neon" onclick="lanzar('Nivel1')">OFICINA (Nivel 1)</button>
@@ -36,6 +37,7 @@
     <div id="game-container"></div>
 
 <script>
+/** * CONFIGURACIÓN GLOBAL */
 let globalData = { sex: 'h', name: 'ABC' };
 
 function setSex(s) {
@@ -61,26 +63,28 @@ function initPhaser(escenaInicial) {
         scene: [Boot, Nivel1, Nivel3]
     };
     const game = new Phaser.Game(config);
-    game.events.once('ready', () => { 
-        game.scene.start(escenaInicial); 
-    });
+    game.events.once('ready', () => { game.scene.start(escenaInicial); });
 }
 
+/** * ESCENA DE CARGA (BOOT) */
 class Boot extends Phaser.Scene {
     constructor() { super('Boot'); }
     preload() {
-        // Assets Nivel 1 y 3 (Verificados nombres en tu GitHub)
+        // Fondos (PNG)
         this.load.image('f_oficina', 'fondo.png');
         this.load.image('f_plaza', 'plaza.png');
-        // Usamos bunker.png o el fondo si falla
-        this.load.image('bunker_img', 'fondo.png'); 
+        this.load.image('bunker', 'bunker.png'); // Asegúrate de tener bunker.png o renómbralo
+        
+        // Elementos Plaza
         this.load.image('boss', 'boss.png');
         this.load.image('silla', 'silla.png');
         this.load.image('cafe', 'cafe.png');
         this.load.image('barril', 'barril.png');
-        
+
+        // Explosión
         for(let i=1; i<=5; i++) { this.load.image(`e${i}`, `e${i}.png`); }
 
+        // Personajes
         const s = globalData.sex;
         this.load.image('p_n', `personaje${s}.png`);
         this.load.image('p_a', `personaje${s}a.png`);
@@ -88,103 +92,111 @@ class Boot extends Phaser.Scene {
     }
 }
 
+/** 🏢 ESCENA NIVEL 1: OFICINA (RECUPERADA) */
 class Nivel1 extends Phaser.Scene {
     constructor() { super('Nivel1'); }
     create() {
+        // 1. Fondo y Escenario
         this.add.image(400, 600, 'f_oficina').setDisplaySize(800, 1200);
-        
-        // Animación de muerte (boom)
+        this.add.image(400, 1100, 'bunker').setScale(0.8).setAlpha(0.6);
+
+        // 2. Animación de Explosión
         if (!this.anims.exists('boom')) {
             this.anims.create({
-                key: 'boom',
-                frames: [{key:'e1'},{key:'e2'},{key:'e3'},{key:'e4'},{key:'e5'}],
+                key: 'boom', frames: [{key:'e1'},{key:'e2'},{key:'e3'},{key:'e4'},{key:'e5'}],
                 frameRate: 10, repeat: 0
             });
         }
 
+        // 3. Personaje
         this.player = this.add.container(400, 400);
         this.sprite = this.add.sprite(0, 0, 'p_n').setScale(0.8);
         this.txtID = this.add.text(0, -130, globalData.name, { fontSize: '26px', fill: '#0ff', fontStyle: 'bold' }).setOrigin(0.5);
         this.player.add([this.sprite, this.txtID]);
 
-        // UI Recuperada (Vidas y Reloj)
+        // 4. RECUPERADO: UI (VIDAS Y RELOJ)
         this.vidas = 3;
-        this.txtVidas = this.add.text(30, 40, '❤️❤️❤️', { fontSize: '45px' });
-        
-        this.horas = 8; this.minutos = 0;
-        this.txtReloj = this.add.text(540, 40, '08:00 AM', { 
-            fontSize: '48px', fill: '#f00', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 
-        });
+        this.vText = this.add.text(30, 40, '❤️❤️❤️', { fontSize: '45px' });
+        this.h = 8; this.m = 0;
+        this.rText = this.add.text(540, 40, '08:00 AM', { fontSize: '48px', fill: '#f00', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 });
 
         // Reloj
         this.time.addEvent({ delay: 1000, loop: true, callback: () => {
-            this.minutos += 30; if(this.minutos >= 60) { this.minutos = 0; this.horas++; }
-            this.txtReloj.setText(`${this.horas<10?'0':''}${this.horas}:${this.minutos==0?'00':this.minutos} PM`);
-            if(this.horas >= 15) this.morirNivel1("SALIDA");
+            if(this.vidas <= 0) return;
+            this.m += 30; if(this.m >= 60) { this.m = 0; this.h++; }
+            this.rText.setText(`${this.h<10?'0':''}${this.h}:${this.m==0?'00':this.m} PM`);
+            if(this.h >= 15) this.gameOverN1("SALIDA");
         }});
 
-        // Movimiento (Lo que ya funcionaba)
+        // Movimiento
         this.input.on('pointerdown', () => {
+            if(this.vidas <= 0) return;
             let targetY = (this.player.y < 600) ? 1080 : 400;
             this.tweens.add({ targets: this.player, y: targetY, duration: 500 });
         });
 
-        // Peligro Achís
+        // Evento Achís
         this.time.addEvent({ delay: 6000, loop: true, callback: () => {
+            if(this.vidas <= 0) return;
             this.sprite.setTexture('p_a');
             this.time.delayedCall(2000, () => {
-                if(this.player.y < 600) this.quitarVida();
-                else this.sprite.setTexture('p_n');
+                if(this.player.y < 600) {
+                    this.vidas--; 
+                    this.vText.setText('❤️'.repeat(this.vidas));
+                    if(this.vidas <= 0) this.gameOverN1("K.O.");
+                    this.sprite.setTexture('p_n');
+                } else {
+                    this.sprite.setTexture('p_n');
+                }
             });
         }});
     }
 
-    quitarVida() {
-        this.vidas--;
-        let corazones = ''; for(let i=0; i<this.vidas; i++) corazones += '❤️';
-        this.txtVidas.setText(corazones);
-        if(this.vidas <= 0) this.morirNivel1("K.O.");
-        else this.sprite.setTexture('p_n');
-    }
-
-    morirNivel1(msg) {
-        if(this.yaMuerto) return; this.yaMuerto = true;
+    gameOverN1(msg) {
         this.sprite.setTexture('p_m');
-        if(this.textures.exists('e1')) {
-            let exp = this.add.sprite(this.player.x, this.player.y, 'e1').setScale(3);
-            exp.play('boom');
-        }
+        let exp = this.add.sprite(this.player.x, this.player.y, 'e1').setScale(3);
+        exp.play('boom');
         this.time.delayedCall(2000, () => location.reload());
     }
 }
 
+/** ⛲ ESCENA NIVEL 3: LA PLAZA (ESTABLE) */
 class Nivel3 extends Phaser.Scene {
     constructor() { super('Nivel3'); }
     create() {
         const { width, height } = this.scale;
         this.add.image(400, 600, 'f_plaza').setDisplaySize(800, 1200);
         
-        this.player = this.physics.add.sprite(width/2, 1100, 'p_n').setScale(0.8);
+        // Boss
+        this.add.image(150, 300, 'boss').setScale(0.25);
+
+        // Jugador
+        this.player = this.physics.add.sprite(400, 1100, 'p_n').setScale(0.8);
         this.player.body.setAllowGravity(false);
         this.player.setCollideWorldBounds(true);
 
+        // Proyectiles
         this.items = this.physics.add.group();
         this.sillas = 0;
-        this.txtPedido = this.add.text(400, 80, 'OBJETIVO: 🪑 0/5', { fontSize: '40px', fill: '#f00' }).setOrigin(0.5);
+        this.txt = this.add.text(400, 80, 'OBJETIVO: 🪑 0/5', { fontSize: '40px', fill: '#f00', backgroundColor: '#000000aa' }).setOrigin(0.5);
 
-        // Lanzamiento parabólico
-        this.time.addEvent({ delay: 2000, loop: true, callback: () => {
+        this.time.addEvent({ delay: 1800, loop: true, callback: () => {
             let t = Phaser.Math.RND.pick(['silla', 'cafe', 'barril']);
             let obj = this.items.create(150, 300, t);
-            obj.setScale(t === 'barril' ? 1 : 0.15); 
-            obj.setVelocity(Phaser.Math.Between(200, 500), -800);
+            
+            // ESCALAS DIFERENCIADAS
+            if(t === 'barril') obj.setScale(0.8);
+            else obj.setScale(0.12); 
+
+            obj.setVelocity(Phaser.Math.Between(250, 550), -850);
+            obj.setAngularVelocity(Phaser.Math.Between(-200, 200));
         }});
 
         this.physics.add.overlap(this.player, this.items, (p, item) => {
-            if(item.texture.key === 'barril') location.reload();
+            if(item.texture.key === 'barril') { location.reload(); }
             else {
                 this.sillas++;
-                this.txtPedido.setText(`OBJETIVO: 🪑 ${this.sillas}/5`);
+                this.txt.setText(`OBJETIVO: 🪑 ${this.sillas}/5`);
                 item.destroy();
                 if(this.sillas >= 5) { alert("¡PEDIDO LISTO!"); location.reload(); }
             }
