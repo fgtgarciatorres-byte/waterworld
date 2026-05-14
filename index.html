@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - Edición Definitiva</title>
+    <title>WaterWorld - Versión Optimizada</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
@@ -27,8 +27,8 @@
             <button onclick="setSex('h')" id="bh" style="background:#05f; color:white; padding:10px; border:none; cursor:pointer;">♂ HOMBRE</button>
             <button onclick="setSex('m')" id="bm" style="background:#333; color:white; padding:10px; border:none; cursor:pointer;">♀ MUJER</button>
         </div>
-        <button class="btn-neon" onclick="startLevel('Nivel1')">NIVEL 1: OFICINA</button>
-        <button class="btn-neon" onclick="startLevel('Nivel3')" style="color:#0ff; border-color:#0ff; box-shadow: 0 0 15px #0ff;">NIVEL 3: PLAZA</button>
+        <button class="btn-neon" onclick="startLevel('Nivel1')">PROBAR NIVEL 1: OFICINA</button>
+        <button class="btn-neon" onclick="startLevel('Nivel3')" style="color:#0ff; border-color:#0ff; box-shadow: 0 0 15px #0ff;">PROBAR NIVEL 3: PLAZA</button>
     </div>
 
 <script>
@@ -53,7 +53,10 @@ function initGame(initialScene) {
         width: 800, height: 1200,
         parent: 'game-container',
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-        physics: { default: 'arcade', arcade: { gravity: { y: 1200 }, debug: false } },
+        physics: { 
+            default: 'arcade', 
+            arcade: { gravity: { y: 1200 }, debug: false } // Gravedad activa para el Nivel 3
+        },
         scene: [Boot, Nivel1, Nivel3]
     };
     const game = new Phaser.Game(config);
@@ -63,19 +66,19 @@ function initGame(initialScene) {
 class Boot extends Phaser.Scene {
     constructor() { super('Boot'); }
     preload() {
-        // Carga Masiva y Blindada
-        this.load.image('f1', 'fondo.png');
-        this.load.image('f3', 'plaza.png');
+        // Carga de archivos basada en tu GitHub
+        this.load.image('f_oficina', 'fondo.png');
+        this.load.image('f_plaza', 'plaza.png');
         this.load.image('bunker', 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg');
         this.load.image('boss', 'boss.png');
         this.load.image('silla', 'silla.png');
         this.load.image('cafe', 'cafe.png');
-        this.load.image('barril', 'barril.png');
+        this.load.image('barril', 'barrilexp.png'); // Usando el barril que veo en tus archivos
         
-        // Animación Explosión
+        // Frames de explosión
         for(let i=1; i<=5; i++) { this.load.image(`e${i}`, `e${i}.png`); }
 
-        // Personajes
+        // Personajes (usando el prefijo del género seleccionado)
         const s = globalData.sex;
         this.load.image('p_n', `personaje${s}.png`);
         this.load.image('p_a', `personaje${s}a.png`);
@@ -83,11 +86,11 @@ class Boot extends Phaser.Scene {
     }
 }
 
+/** 🏢 NIVEL 1: OFICINA (OPTIMIZADO) */
 class Nivel1 extends Phaser.Scene {
     constructor() { super('Nivel1'); }
     create() {
-        this.createAnims();
-        this.add.image(400, 600, 'f1').setDisplaySize(800, 1200);
+        this.add.image(400, 600, 'f_oficina').setDisplaySize(800, 1200);
         this.add.image(400, 1100, 'bunker').setScale(0.8).setAlpha(0.6);
 
         this.player = this.add.container(400, 400);
@@ -95,106 +98,106 @@ class Nivel1 extends Phaser.Scene {
         this.label = this.add.text(0, -130, globalData.name, { fontSize: '24px', fill: '#0ff', fontStyle: 'bold' }).setOrigin(0.5);
         this.player.add([this.sprite, this.label]);
 
-        this.setupUI();
-        this.setupLogic();
-    }
-
-    setupUI() {
         this.vidas = 3;
         this.vText = this.add.text(30, 40, '❤️❤️❤️', { fontSize: '40px' });
+        
+        // Reloj Rojo
         this.h = 8; this.m = 0;
-        this.rText = this.add.text(550, 40, '08:00 AM', { fontSize: '45px', fill: '#f00', fontStyle: 'bold', stroke: '#000', strokeThickness: 5 });
+        this.rText = this.add.text(550, 40, '08:00 AM', { fontSize: '45px', fill: '#f00', fontStyle: 'bold' });
         
         this.time.addEvent({ delay: 1000, loop: true, callback: () => {
             this.m += 30; if(this.m >= 60) { this.m = 0; this.h++; }
             this.rText.setText(`${this.h<10?'0':''}${this.h}:${this.m==0?'00':this.m} PM`);
-            if(this.h >= 15) this.victory();
+            if(this.h >= 15) { alert("¡NIVEL 1 SUPERADO!"); location.reload(); }
         }});
-    }
 
-    setupLogic() {
         this.input.on('pointerdown', () => {
             let targetY = (this.player.y < 600) ? 1080 : 400;
             this.tweens.add({ targets: this.player, y: targetY, duration: 500, ease: 'Power2' });
         });
 
+        // Ciclo Achís
         this.time.addEvent({ delay: 6000, loop: true, callback: () => {
             this.sprite.setTexture('p_a');
             this.cameras.main.shake(300, 0.01);
             this.time.delayedCall(2000, () => {
-                if(this.player.y < 600) this.damage();
-                else this.sprite.setTexture('p_n');
+                if(this.player.y < 600) {
+                    this.vidas--; 
+                    this.vText.setText('❤️'.repeat(this.vidas));
+                    if(this.vidas <= 0) location.reload();
+                    this.sprite.setTexture('p_n');
+                } else { this.sprite.setTexture('p_n'); }
             });
         }});
     }
-
-    damage() {
-        this.vidas--;
-        this.vText.setText('❤️'.repeat(this.vidas));
-        if(this.vidas <= 0) this.gameOver();
-        else { this.cameras.main.flash(500, 255, 0, 0); this.sprite.setTexture('p_n'); }
-    }
-
-    createAnims() {
-        if (!this.anims.exists('boom')) {
-            this.anims.create({ key: 'boom', frames: [{key:'e1'},{key:'e2'},{key:'e3'},{key:'e4'},{key:'e5'}], frameRate: 12 });
-        }
-    }
-
-    gameOver() {
-        this.sprite.setTexture('p_m');
-        let b = this.add.sprite(this.player.x, this.player.y, 'e1').setScale(4).setDepth(100);
-        b.play('boom');
-        this.time.delayedCall(2000, () => location.reload());
-    }
-
-    victory() { alert("JORNADA COMPLETADA"); location.reload(); }
 }
 
+/** ⛲ NIVEL 3: LA PLAZA (NUEVO Y AJUSTADO) */
 class Nivel3 extends Phaser.Scene {
     constructor() { super('Nivel3'); }
     create() {
         const { width, height } = this.scale;
-        this.add.image(width/2, height/2, 'f3').setDisplaySize(width, height);
         
-        // Boss en Balcón
+        // 1. Fondo (Aseguramos que cubra todo)
+        this.add.image(width/2, height/2, 'f_plaza').setDisplaySize(width, height);
+        
+        // 2. Boss en el balcón (Izquierda, según tu plaza.png)
         this.boss = this.add.image(180, 380, 'boss').setScale(0.2);
 
-        // Jugador
+        // 3. Jugador (En la calle)
         this.player = this.physics.add.sprite(width/2, 1080, 'p_n').setScale(0.8);
-        this.player.body.setAllowGravity(false);
+        this.player.body.setAllowGravity(false); // El jugador no cae por gravedad
         this.player.setCollideWorldBounds(true);
 
-        // Grupo Proyectiles
+        // 4. Grupo de proyectiles
         this.items = this.physics.add.group();
 
-        // UI Pedido
+        // 5. UI de Pedidos
         this.sillas = 0; this.cafes = 0;
-        this.ui = this.add.text(400, 80, 'ORDEN: 🪑 0/5 | ☕ 0/3', { fontSize: '32px', fill: '#f00', fontStyle: 'bold', backgroundColor: '#000000aa' }).setOrigin(0.5);
+        this.ui = this.add.text(400, 80, 'ORDEN: 🪑 0/5 | ☕ 0/3', { 
+            fontSize: '32px', fill: '#f00', fontStyle: 'bold', backgroundColor: '#000000aa' 
+        }).setOrigin(0.5);
 
-        // Lanzamiento Parabólico
-        this.time.addEvent({ delay: 1800, loop: true, callback: () => {
-            let t = Phaser.Math.RND.pick(['silla', 'cafe', 'barril']);
-            let obj = this.items.create(180, 380, t).setScale(0.12);
-            obj.setVelocity(Phaser.Math.Between(300, 600), -850);
+        // 6. Lanzamiento Parabólico (Tiro del Boss)
+        this.time.addEvent({ delay: 2000, loop: true, callback: () => {
+            const t = Phaser.Math.RND.pick(['silla', 'cafe', 'barril']);
+            // Salen desde el balcón (boss)
+            const obj = this.items.create(180, 380, t);
+            
+            // IMPORTANTE: Escalado bajo para compensar resolución IA
+            obj.setScale(0.12); 
+            
+            // Impulso inicial: Fuerza hacia la derecha (X) y hacia arriba (Y negativo)
+            obj.setVelocity(Phaser.Math.Between(250, 550), -900);
             obj.setAngularVelocity(Phaser.Math.Between(-200, 200));
         }});
 
+        // 7. Colisiones
         this.physics.add.overlap(this.player, this.items, (p, i) => {
-            if(i.texture.key === 'barril') { this.scene.restart(); }
-            else {
-                if(i.texture.key === 'silla') this.sillas++;
-                if(i.texture.key === 'cafe') this.cafes++;
+            const tipo = i.texture.key;
+            if(tipo === 'barril') {
+                this.cameras.main.shake(500, 0.05);
+                this.time.delayedCall(500, () => location.reload());
+            } else {
+                if(tipo === 'silla') this.sillas++;
+                if(tipo === 'cafe') this.cafes++;
                 this.ui.setText(`ORDEN: 🪑 ${this.sillas}/5 | ☕ ${this.cafes}/3`);
                 this.cameras.main.flash(100, 0, 255, 255);
             }
             i.destroy();
-            if(this.sillas >= 5 && this.cafes >= 3) { alert("¡PEDIDO LISTO!"); location.reload(); }
+            
+            if(this.sillas >= 5 && this.cafes >= 3) {
+                alert("¡PEDIDO COMPLETADO!");
+                location.reload();
+            }
         });
 
+        // Control suave: El personaje sigue el ratón/dedo
         this.input.on('pointermove', (p) => { this.player.x = p.x; });
     }
+
     update() {
+        // Limpieza de objetos que caen al suelo
         this.items.getChildren().forEach(o => { if(o.y > 1150) o.destroy(); });
     }
 }
