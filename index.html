@@ -1,209 +1,553 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WaterWorld - Versión Estable</title>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-    <style>
-        body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
-        #ui-portal {
-            position: absolute; width: 100%; height: 100%;
-            background: radial-gradient(circle, #001 0%, #000 100%);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 2000; color: #0ff; text-align: center;
-        }
-        /* RECUPERADO: Estilo de la casilla de iniciales */
-        .input-id { background: #000; border: 2px solid #0ff; color: #0ff; padding: 10px; margin: 10px; font-size: 20px; text-align: center; box-shadow: 0 0 10px #0ff; border-radius: 5px; outline: none; }
-        .btn-neon { padding: 15px 30px; margin: 10px; font-size: 18px; color: #f0f; border: 2px solid #f0f; background: transparent; cursor: pointer; box-shadow: 0 0 15px #f0f; border-radius: 5px; font-weight: bold; width: 280px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>WaterWorld — Burocracia Submarina</title>
+<style>
+/* ═══ RESET ═══════════════════════════════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#000; overflow:hidden;
+  width:100vw; height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Courier New', Courier, monospace;
+  touch-action:manipulation;
+}
+
+/* ═══ PORTADA ══════════════════════════════════════ */
+#screen-portada {
+  position:fixed; inset:0; z-index:1000;
+  background:radial-gradient(ellipse 100% 70% at 50% 15%,
+    #0e2040 0%, #06101e 60%, #000 100%);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:20px;
+  color:#fff;
+}
+#screen-portada::after {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:repeating-linear-gradient(0deg,
+    transparent, transparent 2px,
+    rgba(0,0,0,.12) 2px, rgba(0,0,0,.12) 4px);
+}
+
+.logo { text-align:center; position:relative; z-index:1; }
+.logo-main {
+  font-size:clamp(2.5rem, 8vw, 4rem);
+  font-weight:900; color:#ff00ff; letter-spacing:6px; line-height:1.0;
+  text-shadow:0 0 18px #ff00ff, 0 0 50px #ff00ff55;
+}
+.logo-sub {
+  margin-top:6px; font-size:.72rem; letter-spacing:5px;
+  color:#00dbff; text-transform:uppercase; opacity:.72;
+}
+
+.char-preview { display:flex; gap:20px; align-items:flex-end; }
+.char-card {
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  cursor:pointer; padding:12px 18px; border-radius:14px;
+  border:3px solid rgba(255,255,255,.08); transition:all .25s;
+}
+.char-emo { font-size:3rem; line-height:1; filter:brightness(0.55); }
+.char-lbl { font-size:.6rem; letter-spacing:3px; color:rgba(255,255,255,.3); }
+.char-card.sel-m { border-color:#00dbff; background:rgba(0,219,255,.07); }
+.char-card.sel-m .char-emo { filter:brightness(1); transform:scale(1.1); }
+.char-card.sel-m .char-lbl { color:#00dbff; }
+.char-card.sel-f { border-color:#ff00ff; background:rgba(255,0,255,.07); }
+.char-card.sel-f .char-emo { filter:brightness(1); transform:scale(1.1); }
+.char-card.sel-f .char-lbl { color:#ff00ff; }
+
+.flabel { font-size:.58rem; letter-spacing:4px; color:#2e4055; text-transform:uppercase; margin-bottom:6px; text-align:center; }
+#inp-ini {
+  display:block; background:rgba(0,0,0,.8); border:2px solid #00dbff;
+  border-radius:10px; color:#00dbff; font-size:2rem; padding:9px 18px; width:152px;
+  text-align:center; outline:none; letter-spacing:14px; font-weight:bold; text-transform:uppercase;
+}
+
+/* Selector Debug Nivel */
+.select-nivel-container { margin: 5px 0; }
+#select-nivel {
+  background: #06101e; color: #00dbff; border: 1px solid #00dbff;
+  padding: 6px 12px; font-family: inherit; font-size: 0.8rem; border-radius: 6px; outline: none; cursor: pointer;
+}
+
+#btn-start {
+  background:linear-gradient(135deg,#ff00ff 0%,#bb00bb 100%);
+  border:none; border-radius:50px; color:#fff; padding:15px 44px; font-size:1rem; font-weight:900;
+  letter-spacing:4px; cursor:pointer; text-transform:uppercase; box-shadow:0 0 22px #ff00ff55;
+}
+
+/* ═══ GAME WRAP ════════════════════════════════════ */
+#game-wrap { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:#000; }
+#game-wrap.on { display:flex; }
+#game-cont { position:relative; overflow:hidden; }
+canvas { display:block; }
+
+/* ═══ HUD ══════════════════════════════════════════ */
+#hud {
+  position:absolute; top:0; left:0; right:0; z-index:20;
+  display:flex; justify-content:space-between; align-items:center; padding:10px 14px; pointer-events:none;
+}
+#hud-vidas { font-size:1.15rem; }
+#hud-clock { font-size:1.05rem; font-weight:bold; color:#ff0000; letter-spacing:2px; text-shadow:0 0 12px rgba(255,0,0,0.5); }
+#hud-pts { font-size:.9rem; color:#00dbff; }
+#lvl-badge { position:absolute; top:0; left:50%; transform:translateX(-50%); z-index:20; pointer-events:none; font-size:.62rem; letter-spacing:3px; color:#ff00ff88; text-transform:uppercase; padding-top:12px; }
+
+/* ═══ AVISO ESTORNUDO ══════════════════════════════ */
+#aviso { position:absolute; left:50%; transform:translateX(-50%); top:13%; z-index:30; width:220px; background:rgba(8,3,0,.92); border:2px solid #ff5500; border-radius:12px; padding:11px 16px 13px; text-align:center; display:none; }
+#aviso.on { display:block; }
+#aviso-lbl { font-size:1rem; font-weight:bold; color:#ff8833; letter-spacing:2px; margin-bottom:8px; }
+.aviso-bg { height:7px; background:#180800; border-radius:4px; overflow:hidden; }
+#aviso-bar { height:100%; width:0%; background:linear-gradient(90deg,#ff8800,#ff1100); }
+
+/* ═══ FIN DE PARTIDA / INTERFAZ COPIADA DE TU CÓDIGO ORIGINAL ═══ */
+.ov { position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.93); display:none; flex-direction:column; align-items:center; justify-content:center; gap:18px; color:#fff; text-align:center; }
+.ov.on { display:flex; }
+.ov-title { font-size:3rem; font-weight:900; letter-spacing:4px; }
+.ov-score { font-size:1.25rem; color:#00dbff; font-weight:bold; }
+.ov-btn { background:#ff00ff; border:none; border-radius:50px; color:#fff; padding:15px 44px; font-size:.94rem; font-weight:bold; cursor:pointer; letter-spacing:3px; }
+
+/* ═══ BOTÓN MOVER MOSTRADO EN TU CAPTURA ═══ */
+#btn-move {
+  position:absolute; bottom:0; left:0; right:0; z-index:25;
+  background:linear-gradient(0deg, rgba(0,0,0,.88) 0%, transparent 100%);
+  border:none; padding:18px 0 22px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;
+  color:#00dbff; font-family:inherit; font-size:.96rem; font-weight:bold; letter-spacing:3px; text-transform:uppercase;
+}
+</style>
 </head>
 <body>
 
-    <div id="ui-portal">
-        <h1 style="font-size: 50px; text-shadow: 0 0 20px #0ff;">WATERWORLD</h1>
-        
-        <input type="text" id="p-name" class="input-id" placeholder="I.D. (3 letras)" maxlength="3">
-        
-        <div style="margin-bottom: 20px;">
-            <button onclick="setSex('h')" id="bh" style="background:#05f; color:white; padding:10px; border:none; cursor:pointer; border-radius:5px;">♂ HOMBRE</button>
-            <button onclick="setSex('m')" id="bm" style="background:#333; color:white; padding:10px; border:none; cursor:pointer; border-radius:5px;">♀ MUJER</button>
-        </div>
-        
-        <button class="btn-neon" onclick="lanzar('Nivel1')">OFICINA (Nivel 1)</button>
-        <button class="btn-neon" onclick="lanzar('Nivel3')" style="color:#0ff; border-color:#0ff; box-shadow: 0 0 15px #0ff;">PLAZA (Nivel 3)</button>
+<div id="screen-portada">
+  <div class="logo">
+    <div class="logo-main">WATERWORLD</div>
+    <div class="logo-sub">⚡ Supervivencia burocrática submarina ⚡</div>
+  </div>
+
+  <div>
+    <div class="flabel">Elige tu unidad</div>
+    <div class="char-preview">
+      <div class="char-card sel-m" id="cbM" onclick="selectChar('M')">
+        <div class="char-emo">👨‍💼</div>
+        <span class="char-lbl">HOMBRE</span>
+      </div>
+      <div class="char-card" id="cbF" onclick="selectChar('F')">
+        <div class="char-emo">👩‍💼</div>
+        <span class="char-lbl">MUJER</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="flabel">Tus iniciales</div>
+    <input id="inp-ini" type="text" maxlength="3" placeholder="AAA" autocomplete="off" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+  </div>
+
+  <div class="select-nivel-container">
+    <div class="flabel">SELECCIONAR ESCENARIO</div>
+    <select id="select-nivel">
+      <option value="1">Nivel 1: Oficina Submarina</option>
+      <option value="3">Nivel 3: Plaza de San Blas</option>
+    </select>
+  </div>
+
+  <button id="btn-start" onclick="empezar()">⚡ &nbsp;FICHAR&nbsp; ⚡</button>
+</div>
+
+<div id="game-wrap">
+  <div id="game-cont">
+    <canvas id="canvas"></canvas>
+
+    <div id="hud">
+      <div id="hud-vidas">❤️❤️❤️</div>
+      <div id="hud-clock">08:00 AM</div>
+      <div id="hud-pts">OBJETIVO: 0/5</div>
+    </div>
+    <div id="lvl-badge" id="lvl-txt">NIVEL 1 — OFICINA</div>
+
+    <div id="aviso">
+      <div id="aviso-lbl">🤧 &nbsp;¡A·CHÍ·S!</div>
+      <div class="aviso-bg"><div id="aviso-bar"></div></div>
     </div>
 
-    <div id="game-container"></div>
+    <button id="btn-move" onclick="togglePosicion()">
+      <span id="bm-ico">🛡️</span>
+      <span id="bm-txt">BAJAR AL BÚNKER</span>
+    </button>
+  </div>
+</div>
+
+<div class="ov" id="ov-dead">
+  <div class="ov-title" style="color:#ff4444">💀 SISTEMA DESTRUIDO 💀</div>
+  <div class="ov-score" id="dead-score">—</div>
+  <button class="ov-btn" onclick="location.reload()">🔄 &nbsp;REINTENTAR</button>
+</div>
+
+<div class="ov" id="ov-win">
+  <div class="ov-title" style="color:#00ff99">🏆 JORNADA SUPERADA</div>
+  <div class="ov-score" id="win-score">—</div>
+  <button class="ov-btn" onclick="location.reload()">🔄 &nbsp;VOLVER</button>
+</div>
 
 <script>
-/** * CONFIGURACIÓN GLOBAL */
-let globalData = { sex: 'h', name: 'ABC' };
+'use strict';
 
-function setSex(s) {
-    globalData.sex = s;
-    document.getElementById('bh').style.background = s === 'h' ? '#05f' : '#333';
-    document.getElementById('bm').style.background = s === 'm' ? '#ff00ff' : '#333';
+const G = {
+  ini: 'AAA', gen: 'M', level: 1,
+  vidas: 3, puntos: 0,
+  horas: 8, minutos: 0,
+  pos: 'OFICINA', // 'OFICINA' o 'BUNKER'
+  running: false,
+  achisTime: 0, achisActive: false
+};
+
+// Configuración de dimensiones nativas del canvas
+const W = 800;
+const H = 1200;
+let canvas, ctx;
+
+// Estado de proyectiles y partículas del Nivel 3
+let proyectiles = [];
+let particulas = [];
+let jugadorX = 400;
+let jefeX = 150;
+let jefeY = 350;
+let spawnTimer = 0;
+
+// Carga de imágenes externas usando las rutas del servidor local/GitHub
+const assets = {
+  fondoN1: new Image(),
+  fondoN3: new Image(),
+  bunker: new Image(),
+  boss: new Image(),
+  silla: new Image(),
+  cafe: new Image(),
+  barril: new Image(),
+  personajeHM: new Image(),
+  personajeMM: new Image()
+};
+
+assets.fondoN1.src = 'fondo.png';
+assets.fondoN3.src = 'plaza.png';
+assets.bunker.src = 'WhatsApp Image 2026-04-16 at 09.54.47.jpeg';
+assets.boss.src = 'boss.png';
+assets.silla.src = 'silla.png';
+assets.cafe.src = 'cafe.png';
+assets.barril.src = 'barril.png';
+assets.personajeHM.src = 'personajehm.png';
+assets.personajeMM.src = 'personajemm.png';
+
+// Animación de explosión manual
+let explosionActive = false;
+let explosionFrame = 1;
+let explosionTimer = 0;
+let explosionX = 0;
+let explosionY = 0;
+const expImages = [];
+for(let i=1; i<=5; i++) {
+  let img = new Image();
+  img.src = `e${i}.png`;
+  expImages.push(img);
 }
 
-function lanzar(escena) {
-    let n = document.getElementById('p-name').value;
-    if(n) globalData.name = n.toUpperCase();
-    document.getElementById('ui-portal').style.display = 'none';
-    initPhaser(escena);
+function selectChar(g) {
+  G.gen = g;
+  document.getElementById('cbM').classList.toggle('sel-m', g === 'M');
+  document.getElementById('cbF').classList.toggle('sel-f', g === 'F');
 }
 
-function initPhaser(escenaInicial) {
-    const config = {
-        type: Phaser.AUTO,
-        width: 800, height: 1200,
-        parent: 'game-container',
-        scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-        physics: { default: 'arcade', arcade: { gravity: { y: 1200 }, debug: false } },
-        scene: [Boot, Nivel1, Nivel3]
-    };
-    const game = new Phaser.Game(config);
-    game.events.once('ready', () => { game.scene.start(escenaInicial); });
+function empezar() {
+  let val = document.getElementById('inp-ini').value.trim();
+  if(val) G.ini = val;
+  G.level = parseInt(document.getElementById('select-nivel').value);
+  
+  document.getElementById('screen-portada').style.display = 'none';
+  document.getElementById('game-wrap').classList.add('on');
+  
+  initGame();
 }
 
-/** * ESCENA DE CARGA (BOOT) */
-class Boot extends Phaser.Scene {
-    constructor() { super('Boot'); }
-    preload() {
-        // Fondos (PNG)
-        this.load.image('f_oficina', 'fondo.png');
-        this.load.image('f_plaza', 'plaza.png');
-        this.load.image('bunker', 'bunker.png'); // Asegúrate de tener bunker.png o renómbralo
-        
-        // Elementos Plaza
-        this.load.image('boss', 'boss.png');
-        this.load.image('silla', 'silla.png');
-        this.load.image('cafe', 'cafe.png');
-        this.load.image('barril', 'barril.png');
+function initGame() {
+  canvas = document.getElementById('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  ctx = canvas.getContext('2d');
+  
+  // Ajustar textos de HUD e identificadores iniciales
+  if(G.level === 3) {
+    document.getElementById('lvl-badge').innerText = "NIVEL 3 — PLAZA DE SAN BLAS";
+    document.getElementById('hud-pts').innerText = "PEDIDO: 0/5 SILLAS";
+    document.getElementById('hud-clock').style.display = "none";
+    document.getElementById('btn-move').style.display = "none";
+    
+    // Control de movimiento por ratón/dedo en el canvas para la plaza
+    canvas.addEventListener('className', () => {});
+    window.addEventListener('pointermove', (e) => {
+      let rect = canvas.getBoundingClientRect();
+      let scaleX = W / rect.width;
+      let x = (e.clientX - rect.left) * scaleX;
+      if(x >= 50 && x <= W - 50) jugadorX = x;
+    });
+  } else {
+    document.getElementById('lvl-badge').innerText = "NIVEL 1 — OFICINA NUCLEAR";
+    document.getElementById('hud-clock').style.innerText = "08:00 AM";
+    document.getElementById('hud-pts').innerText = G.ini;
+  }
+  
+  G.running = true;
+  requestAnimationFrame(loop);
+}
 
-        // Explosión
-        for(let i=1; i<=5; i++) { this.load.image(`e${i}`, `e${i}.png`); }
+function togglePosicion() {
+  if(!G.running || G.level !== 1) return;
+  if(G.pos === 'OFICINA') {
+    G.pos = 'BUNKER';
+    document.getElementById('btn-move').classList.add('bunker');
+    document.getElementById('btn-move').innerText = "🛑 SUBIR A LA OFICINA";
+  } else {
+    G.pos = 'OFICINA';
+    document.getElementById('btn-move').classList.remove('bunker');
+    document.getElementById('btn-move').innerText = "🛡️ BAJAR AL BÚNKER";
+  }
+}
 
-        // Personajes
-        const s = globalData.sex;
-        this.load.image('p_n', `personaje${s}.png`);
-        this.load.image('p_a', `personaje${s}a.png`);
-        this.load.image('p_m', `personaje${s}m.png`);
+// Bucle principal del motor de rendering gráfico nativo
+function loop(timestamp) {
+  if (!G.running) return;
+  
+  update(timestamp);
+  render();
+  
+  requestAnimationFrame(loop);
+}
+
+let lastTime = 0;
+let clockTimer = 0;
+
+function update(timestamp) {
+  let dt = timestamp - lastTime;
+  if(!lastTime) dt = 0;
+  lastTime = timestamp;
+  
+  if(G.level === 1) {
+    // LÓGICA DEL RELOJ ACELERADO (NIVEL 1)
+    clockTimer += dt;
+    if(clockTimer >= 1000) { 
+      clockTimer = 0;
+      G.minutos += 30;
+      if(G.minutos >= 60) { G.minutos = 0; G.horas++; }
+      let hStr = G.horas < 10 ? '0' + G.horas : G.horas;
+      let mStr = G.minutos === 0 ? '00' : G.minutos;
+      document.getElementById('hud-clock').innerText = `${hStr}:${mStr} PM`;
+      
+      if(G.horas >= 15) {
+        G.running = false;
+        document.getElementById('win-score').innerText = `ID: ${G.ini}`;
+        document.getElementById('ov-win').classList.add('on');
+      }
     }
-}
 
-/** 🏢 ESCENA NIVEL 1: OFICINA (RECUPERADA) */
-class Nivel1 extends Phaser.Scene {
-    constructor() { super('Nivel1'); }
-    create() {
-        // 1. Fondo y Escenario
-        this.add.image(400, 600, 'f_oficina').setDisplaySize(800, 1200);
-        this.add.image(400, 1100, 'bunker').setScale(0.8).setAlpha(0.6);
-
-        // 2. Animación de Explosión
-        if (!this.anims.exists('boom')) {
-            this.anims.create({
-                key: 'boom', frames: [{key:'e1'},{key:'e2'},{key:'e3'},{key:'e4'},{key:'e5'}],
-                frameRate: 10, repeat: 0
-            });
+    // LÓGICA EVENTO ACHÍS
+    G.achisTime += dt;
+    if(G.achisTime >= 6000 && !G.achisActive) {
+      G.achisActive = true;
+      document.getElementById('aviso').classList.add('on');
+    }
+    
+    if(G.achisActive) {
+      let progress = (G.achisTime - 6000) / 2000; // 2 segundos de ventana de peligro
+      if(progress > 1) progress = 1;
+      document.getElementById('aviso-bar').style.width = (progress * 100) + '%';
+      
+      if(G.achisTime >= 8000) { // Fin del temporizador de impacto
+        document.getElementById('aviso').classList.remove('on');
+        document.getElementById('aviso-bar').style.width = '0%';
+        G.achisTime = 0;
+        G.achisActive = false;
+        
+        if(G.pos === 'OFICINA') {
+          quitarVida();
         }
+      }
+    }
+  } else if(G.level === 3) {
+    // LÓGICA GENERACIÓN Y FÍSICA PARABÓLICA (NIVEL 3)
+    spawnTimer += dt;
+    if(spawnTimer >= 1500) {
+      spawnTimer = 0;
+      let tipos = ['silla', 'cafe', 'barril'];
+      let elegido = tipos[Math.floor(Math.random() * tipos.length)];
+      
+      proyectiles.push({
+        x: jefeX + 40,
+        y: jefeY,
+        vx: Math.random() * 5 + 4, // velocidad horizontal hacia la derecha
+        vy: -(Math.random() * 12 + 16), // fuerza inicial de ascenso (Y negativa)
+        tipo: elegido,
+        angulo: 0,
+        rotSpeed: Math.random() * 0.1 - 0.05
+      });
+    }
 
-        // 3. Personaje
-        this.player = this.add.container(400, 400);
-        this.sprite = this.add.sprite(0, 0, 'p_n').setScale(0.8);
-        this.txtID = this.add.text(0, -130, globalData.name, { fontSize: '26px', fill: '#0ff', fontStyle: 'bold' }).setOrigin(0.5);
-        this.player.add([this.sprite, this.txtID]);
+    // Procesamiento de físicas de objetos lanzados
+    for(let i = proyectiles.length - 1; i >= 0; i--) {
+      let p = proyectiles[i];
+      p.x += p.vx * (dt / 16);
+      p.vy += 0.4 * (dt / 16); // Gravedad constante aplicada al vector vertical
+      p.y += p.vy * (dt / 16);
+      p.angulo += p.rotSpeed;
 
-        // 4. RECUPERADO: UI (VIDAS Y RELOJ)
-        this.vidas = 3;
-        this.vText = this.add.text(30, 40, '❤️❤️❤️', { fontSize: '45px' });
-        this.h = 8; this.m = 0;
-        this.rText = this.add.text(540, 40, '08:00 AM', { fontSize: '48px', fill: '#f00', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 });
-
-        // Reloj
-        this.time.addEvent({ delay: 1000, loop: true, callback: () => {
-            if(this.vidas <= 0) return;
-            this.m += 30; if(this.m >= 60) { this.m = 0; this.h++; }
-            this.rText.setText(`${this.h<10?'0':''}${this.h}:${this.m==0?'00':this.m} PM`);
-            if(this.h >= 15) this.gameOverN1("SALIDA");
-        }});
-
-        // Movimiento
-        this.input.on('pointerdown', () => {
-            if(this.vidas <= 0) return;
-            let targetY = (this.player.y < 600) ? 1080 : 400;
-            this.tweens.add({ targets: this.player, y: targetY, duration: 500 });
+      // Efecto rastro de humo/neón
+      if(p.tipo !== 'barril' && Math.random() < 0.4) {
+        particulas.push({
+          x: p.x, y: p.y,
+          size: Math.random() * 6 + 4,
+          alpha: 0.8,
+          color: p.tipo === 'silla' ? '#ff00ff' : '#00dbff'
         });
+      }
 
-        // Evento Achís
-        this.time.addEvent({ delay: 6000, loop: true, callback: () => {
-            if(this.vidas <= 0) return;
-            this.sprite.setTexture('p_a');
-            this.time.delayedCall(2000, () => {
-                if(this.player.y < 600) {
-                    this.vidas--; 
-                    this.vText.setText('❤️'.repeat(this.vidas));
-                    if(this.vidas <= 0) this.gameOverN1("K.O.");
-                    this.sprite.setTexture('p_n');
-                } else {
-                    this.sprite.setTexture('p_n');
-                }
-            });
-        }});
+      // Comprobación de impactos
+      let distY = Math.abs(p.y - 1100);
+      let distX = Math.abs(p.x - jugadorX);
+      if(distX < 60 && distY < 80) {
+        if(p.tipo === 'barril') {
+          triggerExplosion(jugadorX, 1100);
+          G.running = false;
+          setTimeout(() => {
+            document.getElementById('dead-score').innerText = "GAME OVER";
+            document.getElementById('ov-dead').classList.add('on');
+          }, 1000);
+        } else {
+          G.puntos++;
+          document.getElementById('hud-pts').innerText = `PEDIDO: ${G.puntos}/5 SILLAS`;
+          if(G.puntos >= 5) {
+            G.running = false;
+            document.getElementById('win-score').innerText = "¡PEDIDO CARGADO EN EL CAMIÓN!";
+            document.getElementById('ov-win').classList.add('on');
+          }
+        }
+        proyectiles.splice(i, 1);
+        continue;
+      }
+
+      // Destruir si sale de pantalla
+      if(p.y > H + 100 || p.x > W + 100) {
+        proyectiles.splice(i, 1);
+      }
     }
 
-    gameOverN1(msg) {
-        this.sprite.setTexture('p_m');
-        let exp = this.add.sprite(this.player.x, this.player.y, 'e1').setScale(3);
-        exp.play('boom');
-        this.time.delayedCall(2000, () => location.reload());
+    // Actualizar partículas de humo
+    for(let i = particulas.length - 1; i >= 0; i--) {
+      particulas[i].alpha -= 0.02;
+      if(particulas[i].alpha <= 0) particulas.splice(i, 1);
     }
+  }
+
+  // Actualizar fotogramas de la explosión
+  if(explosionActive) {
+    explosionTimer += dt;
+    if(explosionTimer >= 100) {
+      explosionTimer = 0;
+      explosionFrame++;
+      if(explosionFrame > 5) explosionActive = false;
+    }
+  }
 }
 
-/** ⛲ ESCENA NIVEL 3: LA PLAZA (ESTABLE) */
-class Nivel3 extends Phaser.Scene {
-    constructor() { super('Nivel3'); }
-    create() {
-        const { width, height } = this.scale;
-        this.add.image(400, 600, 'f_plaza').setDisplaySize(800, 1200);
-        
-        // Boss
-        this.add.image(150, 300, 'boss').setScale(0.25);
+function quitarVida() {
+  G.vidas--;
+  let corazones = '';
+  for(let i=0; i<G.vidas; i++) corazones += '❤️';
+  document.getElementById('hud-vidas').innerText = corazones;
+  
+  if(G.vidas <= 0) {
+    triggerExplosion(400, G.pos === 'OFICINA' ? 500 : 1100);
+    G.running = false;
+    setTimeout(() => {
+      document.getElementById('dead-score').innerText = `INICIALES: ${G.ini}`;
+      document.getElementById('ov-dead').classList.add('on');
+    }, 1200);
+  }
+}
 
-        // Jugador
-        this.player = this.physics.add.sprite(400, 1100, 'p_n').setScale(0.8);
-        this.player.body.setAllowGravity(false);
-        this.player.setCollideWorldBounds(true);
+function triggerExplosion(x, y) {
+  explosionX = x;
+  explosionY = y;
+  explosionFrame = 1;
+  explosionTimer = 0;
+  explosionActive = true;
+}
 
-        // Proyectiles
-        this.items = this.physics.add.group();
-        this.sillas = 0;
-        this.txt = this.add.text(400, 80, 'OBJETIVO: 🪑 0/5', { fontSize: '40px', fill: '#f00', backgroundColor: '#000000aa' }).setOrigin(0.5);
-
-        this.time.addEvent({ delay: 1800, loop: true, callback: () => {
-            let t = Phaser.Math.RND.pick(['silla', 'cafe', 'barril']);
-            let obj = this.items.create(150, 300, t);
-            
-            // ESCALAS DIFERENCIADAS
-            if(t === 'barril') obj.setScale(0.8);
-            else obj.setScale(0.12); 
-
-            obj.setVelocity(Phaser.Math.Between(250, 550), -850);
-            obj.setAngularVelocity(Phaser.Math.Between(-200, 200));
-        }});
-
-        this.physics.add.overlap(this.player, this.items, (p, item) => {
-            if(item.texture.key === 'barril') { location.reload(); }
-            else {
-                this.sillas++;
-                this.txt.setText(`OBJETIVO: 🪑 ${this.sillas}/5`);
-                item.destroy();
-                if(this.sillas >= 5) { alert("¡PEDIDO LISTO!"); location.reload(); }
-            }
-        });
-
-        this.input.on('pointermove', (p) => { this.player.x = p.x; });
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  
+  if(G.level === 1) {
+    // RENDERIZADO ESCENA OFICINA
+    if(assets.fondoN1.complete) ctx.drawImage(assets.fondoN1, 0, 0, W, H);
+    if(assets.bunker.complete) ctx.drawImage(assets.bunker, 150, 1000, 500, 180);
+    
+    // Dibujar personaje segun posición
+    let pY = G.pos === 'OFICINA' ? 500 : 1100;
+    let imgPers = G.gen === 'M' ? assets.personajeHM : assets.personajeMM;
+    
+    if(imgPers.complete) {
+      ctx.drawImage(imgPers, 400 - 60, pY - 120, 120, 180);
+    } else {
+      ctx.fillStyle = "#00dbff";
+      ctx.fillRect(400 - 40, pY - 120, 80, 120);
     }
+  } else if(G.level === 3) {
+    // RENDERIZADO ESCENA PLAZA
+    if(assets.fondoN3.complete) ctx.drawImage(assets.fondoN3, 0, 0, W, H);
+    if(assets.boss.complete) ctx.drawImage(assets.boss, jefeX, jefeY, 120, 140);
+    
+    // Rastro de partículas neón
+    particulas.forEach(p => {
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+      ctx.restore();
+    });
+
+    // Proyectiles en el aire
+    proyectiles.forEach(p => {
+      let imgItem = assets.silla;
+      let sizeW = 70, sizeH = 70;
+      
+      if(p.tipo === 'cafe') imgItem = assets.cafe;
+      if(p.tipo === 'barril') {
+        imgItem = assets.barril;
+        sizeW = 90; sizeH = 90;
+      }
+      
+      if(imgItem.complete) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angulo);
+        ctx.drawImage(imgItem, -sizeW/2, -sizeH/2, sizeW, sizeH);
+        ctx.restore();
+      }
+    });
+
+    // Personaje jugador
+    let imgPers = G.gen === 'M' ? assets.personajeHM : assets.personajeMM;
+    if(imgPers.complete) {
+      ctx.drawImage(imgPers, jugadorX - 60, 1100 - 120, 120, 180);
+    } else {
+      ctx.fillStyle = "#ff00ff";
+      ctx.fillRect(jugadorX - 40, 1100 - 120, 80, 120);
+    }
+  }
+
+  // Renderizador de capas de la animación secuencial de explosión
+  if(explosionActive) {
+    let frameImg = expImages[explosionFrame - 1];
+    if(frameImg && frameImg.complete) {
+      ctx.drawImage(frameImg, explosionX - 150, explosionY - 150, 300, 300);
+    }
+  }
 }
 </script>
 </body>
