@@ -21,7 +21,7 @@ body {
   background:radial-gradient(ellipse 100% 70% at 50% 15%,
     #0e2040 0%, #06101e 60%, #000 100%);
   display:flex; flex-direction:column;
-  align-items:center; justify-content:center; gap:20px;
+  align-items:center; justify-content:center; gap:26px;
   color:#fff;
 }
 #screen-portada::after {
@@ -33,7 +33,7 @@ body {
 
 .logo { text-align:center; position:relative; z-index:1; }
 .logo-main {
-  font-size:clamp(2.5rem, 8vw, 4rem);
+  font-size:clamp(2.8rem, 9vw, 4.6rem);
   font-weight:900; color:#ff00ff; letter-spacing:6px; line-height:1.0;
   text-shadow:0 0 18px #ff00ff, 0 0 50px #ff00ff55;
 }
@@ -42,6 +42,7 @@ body {
   color:#00dbff; text-transform:uppercase; opacity:.72;
 }
 
+/* Selector de personaje */
 .char-preview { display:flex; gap:20px; align-items:flex-end; }
 .char-card {
   display:flex; flex-direction:column; align-items:center; gap:6px;
@@ -61,27 +62,28 @@ body {
 #inp-ini {
   display:block; background:rgba(0,0,0,.8); border:2px solid #00dbff;
   border-radius:10px; color:#00dbff; font-size:2rem; padding:9px 18px; width:152px;
-  text-align:center; outline:none; letter-spacing:14px; font-weight:bold; text-transform:uppercase;
+  text-align:center; outline:none; letter-spacing:14px; font-weight:bold;
+  text-transform:uppercase; font-family:inherit;
 }
 
 /* Selector Debug Nivel */
-.select-nivel-container { margin: 5px 0; }
+.select-nivel-container { margin: 10px 0; }
 #select-nivel {
   background: #06101e; color: #00dbff; border: 1px solid #00dbff;
-  padding: 6px 12px; font-family: inherit; font-size: 0.8rem; border-radius: 6px; outline: none; cursor: pointer;
+  padding: 8px 16px; font-family: inherit; font-size: 0.85rem; border-radius: 6px; outline: none; cursor: pointer;
 }
 
 #btn-start {
   background:linear-gradient(135deg,#ff00ff 0%,#bb00bb 100%);
-  border:none; border-radius:50px; color:#fff; padding:15px 44px; font-size:1rem; font-weight:900;
-  letter-spacing:4px; cursor:pointer; text-transform:uppercase; box-shadow:0 0 22px #ff00ff55;
+  border:none; border-radius:50px; color:#fff; padding:17px 54px; font-size:1.05rem; font-weight:900;
+  letter-spacing:4px; cursor:pointer; font-family:inherit; text-transform:uppercase; box-shadow:0 0 32px #ff00ff55;
 }
 
 /* ═══ GAME WRAP ════════════════════════════════════ */
 #game-wrap { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:#000; }
 #game-wrap.on { display:flex; }
 #game-cont { position:relative; overflow:hidden; }
-canvas { display:block; }
+canvas { display:block; image-rendering:pixelated; }
 
 /* ═══ HUD ══════════════════════════════════════════ */
 #hud {
@@ -90,7 +92,7 @@ canvas { display:block; }
 }
 #hud-vidas { font-size:1.15rem; }
 #hud-clock { font-size:1.05rem; font-weight:bold; color:#ff0000; letter-spacing:2px; text-shadow:0 0 12px rgba(255,0,0,0.5); }
-#hud-pts { font-size:.9rem; color:#00dbff; }
+#hud-pts { font-size:.9rem; color:#ffcc00; }
 #lvl-badge { position:absolute; top:0; left:50%; transform:translateX(-50%); z-index:20; pointer-events:none; font-size:.62rem; letter-spacing:3px; color:#ff00ff88; text-transform:uppercase; padding-top:12px; }
 
 /* ═══ AVISO ESTORNUDO ══════════════════════════════ */
@@ -100,14 +102,14 @@ canvas { display:block; }
 .aviso-bg { height:7px; background:#180800; border-radius:4px; overflow:hidden; }
 #aviso-bar { height:100%; width:0%; background:linear-gradient(90deg,#ff8800,#ff1100); }
 
-/* ═══ FIN DE PARTIDA / INTERFAZ COPIADA DE TU CÓDIGO ORIGINAL ═══ */
+/* ═══ PANTALLAS FINALES ═══ */
 .ov { position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.93); display:none; flex-direction:column; align-items:center; justify-content:center; gap:18px; color:#fff; text-align:center; }
 .ov.on { display:flex; }
 .ov-title { font-size:3rem; font-weight:900; letter-spacing:4px; }
 .ov-score { font-size:1.25rem; color:#00dbff; font-weight:bold; }
 .ov-btn { background:#ff00ff; border:none; border-radius:50px; color:#fff; padding:15px 44px; font-size:.94rem; font-weight:bold; cursor:pointer; letter-spacing:3px; }
 
-/* ═══ BOTÓN MOVER MOSTRADO EN TU CAPTURA ═══ */
+/* ═══ BOTÓN MOVER NIVEL 1 ═══ */
 #btn-move {
   position:absolute; bottom:0; left:0; right:0; z-index:25;
   background:linear-gradient(0deg, rgba(0,0,0,.88) 0%, transparent 100%);
@@ -159,11 +161,11 @@ canvas { display:block; }
     <canvas id="canvas"></canvas>
 
     <div id="hud">
-      <div id="hud-vidas">❤️❤️❤️</div>
+      <div id="hud-vidas">❤️❤️•</div>
       <div id="hud-clock">08:00 AM</div>
-      <div id="hud-pts">OBJETIVO: 0/5</div>
+      <div id="hud-pts">AAA</div>
     </div>
-    <div id="lvl-badge" id="lvl-txt">NIVEL 1 — OFICINA</div>
+    <div id="lvl-badge">NIVEL 1 — OFICINA NUCLEAR</div>
 
     <div id="aviso">
       <div id="aviso-lbl">🤧 &nbsp;¡A·CHÍ·S!</div>
@@ -196,25 +198,24 @@ const G = {
   ini: 'AAA', gen: 'M', level: 1,
   vidas: 3, puntos: 0,
   horas: 8, minutos: 0,
-  pos: 'OFICINA', // 'OFICINA' o 'BUNKER'
+  pos: 'OFICINA',
   running: false,
   achisTime: 0, achisActive: false
 };
 
-// Configuración de dimensiones nativas del canvas
 const W = 800;
 const H = 1200;
 let canvas, ctx;
 
-// Estado de proyectiles y partículas del Nivel 3
+// Estado Nivel 3
 let proyectiles = [];
 let particulas = [];
 let jugadorX = 400;
-let jefeX = 150;
-let jefeY = 350;
+let jefeX = 120;
+let jefeY = 320;
 let spawnTimer = 0;
 
-// Carga de imágenes externas usando las rutas del servidor local/GitHub
+// Carga nativa de imágenes
 const assets = {
   fondoN1: new Image(),
   fondoN3: new Image(),
@@ -224,7 +225,11 @@ const assets = {
   cafe: new Image(),
   barril: new Image(),
   personajeHM: new Image(),
-  personajeMM: new Image()
+  personajeMM: new Image(),
+  personajeH: new Image(),
+  personajeM: new Image(),
+  personajeHA: new Image(),
+  personajeMA: new Image()
 };
 
 assets.fondoN1.src = 'fondo.png';
@@ -234,17 +239,21 @@ assets.boss.src = 'boss.png';
 assets.silla.src = 'silla.png';
 assets.cafe.src = 'cafe.png';
 assets.barril.src = 'barril.png';
+assets.personajeH.src = 'personajeh.png';
+assets.personajeM.src = 'personajem.png';
+assets.personajeHA.src = 'personajeha.png';
+assets.personajeMA.src = 'personajema.png';
 assets.personajeHM.src = 'personajehm.png';
 assets.personajeMM.src = 'personajemm.png';
 
-// Animación de explosión manual
+// Sistema de Explosión Secuencial e1 a e5
 let explosionActive = false;
 let explosionFrame = 1;
 let explosionTimer = 0;
 let explosionX = 0;
 let explosionY = 0;
 const expImages = [];
-for(let i=1; i<=5; i++) {
+for(let i = 1; i <= 5; i++) {
   let img = new Image();
   img.src = `e${i}.png`;
   expImages.push(img);
@@ -273,24 +282,24 @@ function initGame() {
   canvas.height = H;
   ctx = canvas.getContext('2d');
   
-  // Ajustar textos de HUD e identificadores iniciales
+  // Sincronizar HUD inicial
+  let vidasTxt = '❤️'.repeat(G.vidas);
+  document.getElementById('hud-vidas').innerText = vidasTxt;
+  
   if(G.level === 3) {
     document.getElementById('lvl-badge').innerText = "NIVEL 3 — PLAZA DE SAN BLAS";
     document.getElementById('hud-pts').innerText = "PEDIDO: 0/5 SILLAS";
     document.getElementById('hud-clock').style.display = "none";
     document.getElementById('btn-move').style.display = "none";
     
-    // Control de movimiento por ratón/dedo en el canvas para la plaza
-    canvas.addEventListener('className', () => {});
+    // Captura táctil y de ratón para mover horizontalmente en la plaza
     window.addEventListener('pointermove', (e) => {
       let rect = canvas.getBoundingClientRect();
-      let scaleX = W / rect.width;
-      let x = (e.clientX - rect.left) * scaleX;
-      if(x >= 50 && x <= W - 50) jugadorX = x;
+      let xX = (e.clientX - rect.left) * (W / rect.width);
+      if(xX >= 60 && xX <= W - 60) jugadorX = xX;
     });
   } else {
     document.getElementById('lvl-badge').innerText = "NIVEL 1 — OFICINA NUCLEAR";
-    document.getElementById('hud-clock').style.innerText = "08:00 AM";
     document.getElementById('hud-pts').innerText = G.ini;
   }
   
@@ -302,22 +311,17 @@ function togglePosicion() {
   if(!G.running || G.level !== 1) return;
   if(G.pos === 'OFICINA') {
     G.pos = 'BUNKER';
-    document.getElementById('btn-move').classList.add('bunker');
-    document.getElementById('btn-move').innerText = "🛑 SUBIR A LA OFICINA";
+    document.getElementById('btn-move').innerText = "🛡️ SUBIR A LA OFICINA";
   } else {
     G.pos = 'OFICINA';
-    document.getElementById('btn-move').classList.remove('bunker');
-    document.getElementById('btn-move').innerText = "🛡️ BAJAR AL BÚNKER";
+    document.getElementById('btn-move').innerText = "👇 BAJAR AL BÚNKER";
   }
 }
 
-// Bucle principal del motor de rendering gráfico nativo
 function loop(timestamp) {
   if (!G.running) return;
-  
   update(timestamp);
   render();
-  
   requestAnimationFrame(loop);
 }
 
@@ -330,9 +334,9 @@ function update(timestamp) {
   lastTime = timestamp;
   
   if(G.level === 1) {
-    // LÓGICA DEL RELOJ ACELERADO (NIVEL 1)
+    // Reloj Acelerado
     clockTimer += dt;
-    if(clockTimer >= 1000) { 
+    if(clockTimer >= 1000) {
       clockTimer = 0;
       G.minutos += 30;
       if(G.minutos >= 60) { G.minutos = 0; G.horas++; }
@@ -342,12 +346,12 @@ function update(timestamp) {
       
       if(G.horas >= 15) {
         G.running = false;
-        document.getElementById('win-score').innerText = `ID: ${G.ini}`;
+        document.getElementById('win-score').innerText = `ID: ${G.ini} JORNADA TERMINADA`;
         document.getElementById('ov-win').classList.add('on');
       }
     }
 
-    // LÓGICA EVENTO ACHÍS
+    // Ciclo del estornudo Peligro cada 6s
     G.achisTime += dt;
     if(G.achisTime >= 6000 && !G.achisActive) {
       G.achisActive = true;
@@ -355,67 +359,64 @@ function update(timestamp) {
     }
     
     if(G.achisActive) {
-      let progress = (G.achisTime - 6000) / 2000; // 2 segundos de ventana de peligro
+      let progress = (G.achisTime - 6000) / 2000;
       if(progress > 1) progress = 1;
       document.getElementById('aviso-bar').style.width = (progress * 100) + '%';
       
-      if(G.achisTime >= 8000) { // Fin del temporizador de impacto
+      if(G.achisTime >= 8000) {
         document.getElementById('aviso').classList.remove('on');
         document.getElementById('aviso-bar').style.width = '0%';
         G.achisTime = 0;
         G.achisActive = false;
         
-        if(G.pos === 'OFICINA') {
-          quitarVida();
-        }
+        if(G.pos === 'OFICINA') quitarVida();
       }
     }
   } else if(G.level === 3) {
-    // LÓGICA GENERACIÓN Y FÍSICA PARABÓLICA (NIVEL 3)
+    // Físicas del Nivel 3
     spawnTimer += dt;
-    if(spawnTimer >= 1500) {
+    if(spawnTimer >= 1600) {
       spawnTimer = 0;
-      let tipos = ['silla', 'cafe', 'barril'];
-      let elegido = tipos[Math.floor(Math.random() * tipos.length)];
+      let pool = ['silla', 'cafe', 'barril'];
+      let tipoObj = pool[Math.floor(Math.random() * pool.length)];
       
       proyectiles.push({
-        x: jefeX + 40,
-        y: jefeY,
-        vx: Math.random() * 5 + 4, // velocidad horizontal hacia la derecha
-        vy: -(Math.random() * 12 + 16), // fuerza inicial de ascenso (Y negativa)
-        tipo: elegido,
-        angulo: 0,
-        rotSpeed: Math.random() * 0.1 - 0.05
+        x: jefeX + 30,
+        y: jefeY + 40,
+        vx: Math.random() * 4 + 5,
+        vy: -(Math.random() * 10 + 15), // Fuerza ascendente
+        tipo: tipoObj,
+        rot: 0,
+        vRot: Math.random() * 0.08 - 0.04
       });
     }
 
-    // Procesamiento de físicas de objetos lanzados
     for(let i = proyectiles.length - 1; i >= 0; i--) {
       let p = proyectiles[i];
       p.x += p.vx * (dt / 16);
-      p.vy += 0.4 * (dt / 16); // Gravedad constante aplicada al vector vertical
+      p.vy += 0.42 * (dt / 16); // Gravedad
       p.y += p.vy * (dt / 16);
-      p.angulo += p.rotSpeed;
+      p.rot += p.vRot;
 
-      // Efecto rastro de humo/neón
-      if(p.tipo !== 'barril' && Math.random() < 0.4) {
+      // Partículas de humo de neón para cafés y sillas
+      if(p.tipo !== 'barril' && Math.random() < 0.5) {
         particulas.push({
           x: p.x, y: p.y,
-          size: Math.random() * 6 + 4,
-          alpha: 0.8,
-          color: p.tipo === 'silla' ? '#ff00ff' : '#00dbff'
+          r: Math.random() * 5 + 3,
+          a: 0.8,
+          c: p.tipo === 'silla' ? '#ff00ff' : '#00dbff'
         });
       }
 
-      // Comprobación de impactos
-      let distY = Math.abs(p.y - 1100);
-      let distX = Math.abs(p.x - jugadorX);
-      if(distX < 60 && distY < 80) {
+      // Colisión con el Jugador en el suelo (Y = 1100)
+      let dX = Math.abs(p.x - jugadorX);
+      let dY = Math.abs(p.y - 1100);
+      if(dX < 55 && dY < 80) {
         if(p.tipo === 'barril') {
           triggerExplosion(jugadorX, 1100);
           G.running = false;
           setTimeout(() => {
-            document.getElementById('dead-score').innerText = "GAME OVER";
+            document.getElementById('dead-score').innerText = "SISTEMA DESTRUIDO POR BARRIL";
             document.getElementById('ov-dead').classList.add('on');
           }, 1000);
         } else {
@@ -431,23 +432,20 @@ function update(timestamp) {
         continue;
       }
 
-      // Destruir si sale de pantalla
-      if(p.y > H + 100 || p.x > W + 100) {
-        proyectiles.splice(i, 1);
-      }
+      if(p.y > H + 50 || p.x > W + 50) proyectiles.splice(i, 1);
     }
 
-    // Actualizar partículas de humo
+    // Desvanecer partículas
     for(let i = particulas.length - 1; i >= 0; i--) {
-      particulas[i].alpha -= 0.02;
-      if(particulas[i].alpha <= 0) particulas.splice(i, 1);
+      particulas[i].a -= 0.03;
+      if(particulas[i].a <= 0) particulas.splice(i, 1);
     }
   }
 
-  // Actualizar fotogramas de la explosión
+  // Secuencia de fotogramas de la explosión
   if(explosionActive) {
     explosionTimer += dt;
-    if(explosionTimer >= 100) {
+    if(explosionTimer >= 90) {
       explosionTimer = 0;
       explosionFrame++;
       if(explosionFrame > 5) explosionActive = false;
@@ -457,15 +455,13 @@ function update(timestamp) {
 
 function quitarVida() {
   G.vidas--;
-  let corazones = '';
-  for(let i=0; i<G.vidas; i++) corazones += '❤️';
-  document.getElementById('hud-vidas').innerText = corazones;
+  document.getElementById('hud-vidas').innerText = '❤️'.repeat(G.vidas);
   
   if(G.vidas <= 0) {
     triggerExplosion(400, G.pos === 'OFICINA' ? 500 : 1100);
     G.running = false;
     setTimeout(() => {
-      document.getElementById('dead-score').innerText = `INICIALES: ${G.ini}`;
+      document.getElementById('dead-score').innerText = `INICIALES: ${G.ini} — JORNADA FALLIDA`;
       document.getElementById('ov-dead').classList.add('on');
     }, 1200);
   }
@@ -483,69 +479,65 @@ function render() {
   ctx.clearRect(0, 0, W, H);
   
   if(G.level === 1) {
-    // RENDERIZADO ESCENA OFICINA
     if(assets.fondoN1.complete) ctx.drawImage(assets.fondoN1, 0, 0, W, H);
     if(assets.bunker.complete) ctx.drawImage(assets.bunker, 150, 1000, 500, 180);
     
-    // Dibujar personaje segun posición
     let pY = G.pos === 'OFICINA' ? 500 : 1100;
-    let imgPers = G.gen === 'M' ? assets.personajeHM : assets.personajeMM;
+    let imgPers = G.gen === 'M' ? assets.personajeH : assets.personajeM;
+    if(G.achisActive && G.pos === 'OFICINA') {
+      imgPers = G.gen === 'M' ? assets.personajeHA : assets.personajeMA;
+    }
     
     if(imgPers.complete) {
       ctx.drawImage(imgPers, 400 - 60, pY - 120, 120, 180);
-    } else {
-      ctx.fillStyle = "#00dbff";
-      ctx.fillRect(400 - 40, pY - 120, 80, 120);
     }
   } else if(G.level === 3) {
-    // RENDERIZADO ESCENA PLAZA
     if(assets.fondoN3.complete) ctx.drawImage(assets.fondoN3, 0, 0, W, H);
-    if(assets.boss.complete) ctx.drawImage(assets.boss, jefeX, jefeY, 120, 140);
+    if(assets.boss.complete) ctx.drawImage(assets.boss, jefeX, jefeY, 125, 145);
     
-    // Rastro de partículas neón
+    // Partículas neón
     particulas.forEach(p => {
       ctx.save();
-      ctx.globalAlpha = p.alpha;
-      ctx.fillStyle = p.color;
-      ctx.fillRect(p.x, p.y, p.size, p.size);
+      ctx.globalAlpha = p.a;
+      ctx.fillStyle = p.c;
+      ctx.fillRect(p.x, p.y, p.r, p.r);
       ctx.restore();
     });
 
-    // Proyectiles en el aire
+    // Proyectiles en parábola rotando
     proyectiles.forEach(p => {
       let imgItem = assets.silla;
-      let sizeW = 70, sizeH = 70;
+      let sW = 75, sH = 75;
       
       if(p.tipo === 'cafe') imgItem = assets.cafe;
-      if(p.tipo === 'barril') {
-        imgItem = assets.barril;
-        sizeW = 90; sizeH = 90;
-      }
+      if(p.tipo === 'barril') { imgItem = assets.barril; sW = 95; sH = 95; }
       
       if(imgItem.complete) {
         ctx.save();
         ctx.translate(p.x, p.y);
-        ctx.rotate(p.angulo);
-        ctx.drawImage(imgItem, -sizeW/2, -sizeH/2, sizeW, sizeH);
+        ctx.rotate(p.rot);
+        ctx.drawImage(imgItem, -sW/2, -sH/2, sW, sH);
         ctx.restore();
       }
     });
 
-    // Personaje jugador
-    let imgPers = G.gen === 'M' ? assets.personajeHM : assets.personajeMM;
+    // Dibujar Jugador controlado lateralmente
+    let imgPers = G.gen === 'M' ? assets.personajeH : assets.personajeM;
     if(imgPers.complete) {
       ctx.drawImage(imgPers, jugadorX - 60, 1100 - 120, 120, 180);
-    } else {
-      ctx.fillStyle = "#ff00ff";
-      ctx.fillRect(jugadorX - 40, 1100 - 120, 80, 120);
     }
   }
 
-  // Renderizador de capas de la animación secuencial de explosión
+  // Capa superior de explosión (e1 a e5)
   if(explosionActive) {
     let frameImg = expImages[explosionFrame - 1];
     if(frameImg && frameImg.complete) {
       ctx.drawImage(frameImg, explosionX - 150, explosionY - 150, 300, 300);
+    }
+    // Forzar renderizado del personaje muerto debajo de la explosión
+    let imgDead = G.gen === 'M' ? assets.personajeHM : assets.personajeMM;
+    if(imgDead.complete) {
+      ctx.drawImage(imgDead, explosionX - 60, explosionY - 120, 120, 180);
     }
   }
 }
