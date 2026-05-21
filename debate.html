@@ -15,7 +15,7 @@ body {
   touch-action:manipulation;
 }
 
-/* ═══ PORTADA INTERFAZ ═════════════════════════════ */
+/* ═══ PORTADA INTERFAZ (Fusión exacta de elfuncionario.html) ═══ */
 #screen-portada {
   position:fixed; inset:0; z-index:1000;
   background:radial-gradient(ellipse 100% 70% at 50% 15%, #0e2040 0%, #06101e 60%, #000 100%);
@@ -58,7 +58,7 @@ body {
   text-transform:uppercase; box-shadow:0 0 32px #ff00ff55;
 }
 
-/* ═══ CONTENEDOR DE JUEGO AUTO-ESCALABLE (ADAPTACIÓN PC) ═══ */
+/* ═══ CONTENEDOR DE JUEGO AUTO-ESCALABLE ═══ */
 #game-wrap { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:#000; }
 #game-wrap.on { display:flex; }
 #game-cont { position:relative; overflow:hidden; max-height:100vh; aspect-ratio: 800 / 1200; width:100%; height:100%; }
@@ -154,14 +154,15 @@ canvas { display:block; width:100%; height:100%; object-fit:contain; image-rende
 <script>
 'use strict';
 
+// Base de duelos completa recuperada del archivo de texto
 const baseDeDuelos = {
   fase1: [
     {
       ataque: 'Jefe: "He visto informes con más personalidad que tu hoja de horas."',
       opciones: [
         { texto: 'Normal, tú solo lees los que ya están maquillados.', pts: 100 },
-        { texto: 'Pues al menos yo relleno la mía puntualmente.', pts: 25 },
-        { texto: '¿Ah, sí? ¿Cuál de todos ellos?', pts: 0 }
+        { texto: 'Pues al menos yo relleno la mía.', pts: 25 },
+        { texto: '¿Ah, sí? ¿Cuál?', pts: 0 }
       ]
     },
     {
@@ -171,6 +172,14 @@ const baseDeDuelos = {
         { texto: 'El sistema operativo de la empresa es el que falla.', pts: 25 },
         { texto: 'Voy a pasarle el antivirus al archivo de Excel.', pts: 0 }
       ]
+    },
+    {
+      ataque: 'Jefe: "¡Tu ritmo de trabajo es tan lento que el departamento de auditoría cree que estás en huelga!"',
+      opciones: [
+        { texto: 'Huelga la que hace tu cerebro cuando te toca tomar una decisión.', pts: 100 },
+        { texto: 'Es que analizo con cuidado cada variable presupuestaria.', pts: 25 },
+        { texto: 'Y tú firmas sentencias sin leer la lectura.', pts: 0 }
+      ]
     }
   ],
   fase2: [
@@ -178,40 +187,43 @@ const baseDeDuelos = {
       ataque: 'Jefe: "Tu productividad es más baja que el interés de un pagaré obeso."',
       opciones: [
         { texto: 'La tuya es nula, pero cobras más por el peso.', pts: 100 },
-        { texto: 'Eso es un exceso corporativo.', pts: 25 },
-        { texto: 'No se preocupe, estoy a dieta rigurosa.', pts: 0 }
+        { texto: 'Eso es un exceso.', pts: 25 },
+        { texto: 'Estoy a dieta.', pts: 0 }
       ]
     },
     {
       ataque: 'Jefe: "¡Eres el pasante que nunca encuentra la toalla!"',
       opciones: [
         { texto: 'Y tú el jefe que se apropia de la medalla.', pts: 100 },
-        { texto: 'La tiene usted guardada en su despacho.', pts: 25 },
-        { texto: 'Qué bien rima hoy, señor director.', pts: 0 }
+        { texto: 'Qué bien rima.', pts: 25 },
+        { texto: 'La tienes tú.', pts: 0 }
       ]
     },
     {
       ataque: 'Jefe: "Tu cara de sueño me da más pena que un lunes sin cafeína plena."',
       opciones: [
         { texto: 'La tuya me da grima, como tu corbata de gangrena.', pts: 100 },
-        { texto: '¿Me da permiso para ir a por un café?', pts: 0 },
-        { texto: 'Es culpa del turno de noche de esta semana.', pts: 25 }
+        { texto: 'Es por el turno de noche.', pts: 25 },
+        { texto: '¿Me puedo tomar un café?', pts: 0 }
       ]
     }
   ]
 };
 
 const G = {
-  ini: 'AAA', gen: 'M',
-  fase: 1, dueloIndex: 0,
-  score: 0, running: false
+  ini: 'AAA',
+  gen: 'M',
+  fase: 1,
+  dueloIndex: 0,
+  score: 0,
+  running: false
 };
 
 const W = 800;
 const H = 1200;
 let canvas, ctx;
 
-// ══ CORRECCIÓN CRÍTICA DE NOMBRES EN MINÚSCULAS DE GITHUB ══
+// Configuración de recursos multimedia
 const assets = {
   pasillo: new Image(),
   reunion: new Image(),
@@ -219,28 +231,32 @@ const assets = {
   player: new Image()
 };
 
-// Vinculamos disparadores automáticos de refresco al terminar de cargar
+// Vinculación de recarga gráfica automática al descargar del servidor
 assets.pasillo.onload = () => { if(G.running) render(); };
 assets.reunion.onload = () => { if(G.running) render(); };
 assets.boss.onload    = () => { if(G.running) render(); };
 assets.player.onload  = () => { if(G.running) render(); };
 
-assets.pasillo.src = 'pasillo.png';   // Corregido a minúscula 'pasillo'
-assets.reunion.src = 'reunion.png';   // Corregido a minúscula 'reunion'
-assets.boss.src = 'boss.png';
+assets.pasillo.src = 'pasillo.png';   
+assets.reunion.src = 'reunion.png';   
+assets.boss.src = 'boss.png';         
 
+// Control exacto de selección de género de elfuncionario.html
 function selectChar(g) {
   G.gen = g;
   document.getElementById('cbM').classList.toggle('sel-m', g === 'M');
   document.getElementById('cbF').classList.toggle('sel-f', g === 'F');
 }
 
+// Inicialización limpia corregida
 function empezar() {
   let val = document.getElementById('inp-ini').value.trim();
   if(val) G.ini = val.toUpperCase();
   
+  // Asignación correcta del personaje según selección
   assets.player.src = G.gen === 'M' ? 'personajeh.png' : 'personajem.png';
   
+  // Ocultar portada y activar juego
   document.getElementById('screen-portada').style.display = 'none';
   document.getElementById('game-wrap').classList.add('on');
   
@@ -317,4 +333,52 @@ function terminarJuego() {
 }
 
 function loop() {
-  if (!
+  if (!G.running) return;
+  render();
+  requestAnimationFrame(loop);
+}
+
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  
+  // 1. Fondo seguro basado en minúsculas del repositorio
+  let fActual = G.fase === 1 ? assets.pasillo : assets.reunion;
+  if (fActual && fActual.complete && fActual.naturalWidth > 0) {
+    ctx.drawImage(fActual, 0, 0, W, H);
+  } else {
+    ctx.fillStyle = G.fase === 1 ? '#0a1526' : '#260a21';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '20px Courier New';
+    ctx.fillText('Cargando escenario...', 290, 300);
+  }
+
+  // 2. Dibujado de Boss Seguro
+  if (assets.boss && assets.boss.complete && assets.boss.naturalWidth > 0) {
+    ctx.drawImage(assets.boss, 60, 460, 200, 260);
+  } else {
+    ctx.fillStyle = '#ff0055';
+    ctx.fillRect(60, 460, 200, 260);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '24px Courier New';
+    ctx.fillText('👹 JEFE', 110, 590);
+  }
+
+  // 3. Dibujado de Jugador Seguro (Espejado dinámico)
+  if (assets.player && assets.player.complete && assets.player.naturalWidth > 0) {
+    ctx.save();
+    ctx.translate(W - 60, 460);
+    ctx.scale(-1, 1);
+    ctx.drawImage(assets.player, 0, 0, 200, 260);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = '#00dbff';
+    ctx.fillRect(W - 260, 460, 200, 260);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '24px Courier New';
+    ctx.fillText('💼 TU', W - 180, 590);
+  }
+}
+</script>
+</body>
+</html>
