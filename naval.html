@@ -64,30 +64,30 @@ body {
 #game-cont { position:relative; overflow:hidden; max-height:100vh; aspect-ratio: 800 / 1200; width:100%; height:100%; }
 canvas { display:block; width:100%; height:100%; object-fit:contain; image-rendering:pixelated; }
 
-/* ═══ HUD CONTROLES NAVALES (FUSIONADO ESTILO BASKET) ═══ */
-#hud-vida-tu { position:absolute; top:20px; left:20px; z-index:20; color:#00dbff; font-size:1.2rem; font-weight:bold; text-shadow:0 0 6px #000; }
-#hud-vida-boss { position:absolute; top:20px; right:20px; z-index:20; color:#ff00ff; font-size:1.2rem; font-weight:bold; text-shadow:0 0 6px #000; }
+/* ═══ HUD CONTROLES NAVALES ═══ */
+#hud-vida-tu { position:absolute; top:25px; left:25px; z-index:20; color:#00dbff; font-size:1.3rem; font-weight:bold; text-shadow:0 0 6px #000; }
+#hud-vida-boss { position:absolute; top:25px; right:25px; z-index:20; color:#ff00ff; font-size:1.3rem; font-weight:bold; text-shadow:0 0 6px #000; }
 
 /* Display de Ángulo Izquierdo */
 #angle-control {
-  position:absolute; left:20px; top:45%; transform:translateY(-50%); z-index:25;
+  position:absolute; left:25px; top:45%; transform:translateY(-50%); z-index:25;
   background:rgba(6,16,30,0.9); border:2px solid #00dbff; border-radius:12px;
   padding:14px; display:flex; flex-direction:column; align-items:center; gap:8px; color:#fff;
 }
-.ang-btn { background:#00dbff; border:none; color:#000; width:36px; height:36px; font-weight:bold; font-size:1.2rem; border-radius:6px; cursor:pointer; }
-#angle-disp { font-size:1.1rem; font-weight:bold; color:#00dbff; }
+.ang-btn { background:#00dbff; border:none; color:#000; width:38px; height:38px; font-weight:bold; font-size:1.3rem; border-radius:6px; cursor:pointer; }
+#angle-disp { font-size:1.15rem; font-weight:bold; color:#00dbff; }
 
-/* Barra de Energía Inferior + Botón Disparo */
+/* Barra de Energía Inferior (Mecánica Baloncesto) */
 #control-inferior {
   position:absolute; bottom:30px; left:30px; right:30px; z-index:25;
-  display:flex; align-items:center; gap:20px; background:rgba(0,0,0,0.75); padding:16px; border-radius:16px; border:1px solid rgba(255,255,255,0.1);
+  display:flex; align-items:center; gap:20px; background:rgba(0,0,0,0.8); padding:16px; border-radius:16px; border:1px solid rgba(255,255,255,0.1);
 }
 .power-container { flex-grow:1; display:flex; flex-direction:column; gap:6px; }
-.power-bg { height:20px; background:#111; border:2px solid #ffcc00; border-radius:6px; overflow:hidden; }
+.power-bg { height:22px; background:#111; border:2px solid #ffcc00; border-radius:6px; overflow:hidden; }
 #power-bar { height:100%; width:0%; background:linear-gradient(90deg, #ffcc00, #ff3300); }
 #btn-shoot {
   background:linear-gradient(135deg,#ff0055 0%,#aa0033 100%); border:none; border-radius:10px; color:#fff;
-  padding:15px 30px; font-size:1.1rem; font-weight:bold; letter-spacing:2px; cursor:pointer; font-family:inherit;
+  padding:16px 34px; font-size:1.15rem; font-weight:bold; letter-spacing:2px; cursor:pointer; font-family:inherit;
 }
 
 /* PANTALLAS FINALES */
@@ -135,7 +135,7 @@ canvas { display:block; width:100%; height:100%; object-fit:contain; image-rende
     <div id="hud-vida-boss">BOSS: ❤️❤️❤️</div>
 
     <div id="angle-control">
-      <div style="font-size:0.6rem; letter-spacing:1px;">ÁNGULO</div>
+      <div style="font-size:0.6rem; letter-spacing:1px; margin-bottom:2px;">ÁNGULO</div>
       <button class="ang-btn" onclick="modificarAngulo(5)">▲</button>
       <div id="angle-disp">45°</div>
       <button class="ang-btn" onclick="modificarAngulo(-5)">▼</button>
@@ -143,7 +143,7 @@ canvas { display:block; width:100%; height:100%; object-fit:contain; image-rende
 
     <div id="control-inferior">
       <div class="power-container">
-        <div style="font-size:0.65rem; color:#ffcc00; letter-spacing:2px; font-weight:bold;">POTENCIA DISPARO</div>
+        <div style="font-size:0.65rem; color:#ffcc00; letter-spacing:2px; font-weight:bold;">POTENCIA CAÑÓN</div>
         <div class="power-bg"><div id="power-bar"></div></div>
       </div>
       <button id="btn-shoot">FUEGO</button>
@@ -175,25 +175,26 @@ const W = 800;
 const H = 1200;
 let canvas, ctx;
 
-// Posicionamiento de barcos/avatares
+// Estados de navegación vertical
 let tuY = 600;
 let bossY = 600;
 let tuDir = 1;
 let bossDir = -1;
 
-// Control de Proyectiles (Basado en baloncesto_muestra)
+// Objeto Proyectil
 let bala = { x: 0, y: 0, vx: 0, vy: 0, activa: false, r: 16, due: 'TU' };
 
-// Carga de imágenes nativa
+// Recursos unificados según tus cambios de última hora
 const assets = {
   mar: new Image(),
-  player: new Image(),
-  boss: new Image(),
+  nav1: new Image(),
+  nav2: new Image(),
   barril: new Image()
 };
 
-assets.mar.src = 'plaza.png'; // Reutiliza tu fondo de plaza como océano neón
-assets.boss.src = 'boss.png';
+assets.mar.src = 'mar.png';      // Imagen cenital generada
+assets.nav1.src = 'nav1.png';    // Barco Protagonista
+assets.nav2.src = 'nav2.png';    // Barco Boss
 assets.barril.src = 'barril.png';
 
 function selectChar(g) {
@@ -213,8 +214,6 @@ function empezar() {
   let val = document.getElementById('inp-ini').value.trim();
   if(val) G.ini = val.toUpperCase();
   
-  assets.player.src = G.gen === 'M' ? 'personajeh.png' : 'personajem.png';
-  
   document.getElementById('screen-portada').style.display = 'none';
   document.getElementById('game-wrap').classList.add('on');
   
@@ -227,16 +226,16 @@ function initGame() {
   canvas.height = H;
   ctx = canvas.getContext('2d');
   
+  document.getElementById('hud-vida-tu').innerText = G.ini + ': ❤️❤️❤️';
+  
   setupDisparoBasket();
   G.running = true;
   requestAnimationFrame(loop);
 }
 
-// ══ LÓGICA DE DISPARO POR CARGA (COPIADO SINCRO DE TU EJEMPLO BASKET) ══
 function setupDisparoBasket() {
   let btn = document.getElementById('btn-shoot');
   
-  // Soporte tanto para Ordenador (Mouse) como Móvil (Touch)
   const iniciarCarga = (e) => {
     e.preventDefault();
     if(!G.running || bala.activa) return;
@@ -248,12 +247,11 @@ function setupDisparoBasket() {
     if(!G.cargandoFuerza) return;
     G.cargandoFuerza = false;
     
-    // Calcular componentes vectoriales basados en el ángulo
     let rad = G.angulo * Math.PI / 180;
-    let moduloFuerza = (G.fuerza / 100) * 22 + 10; // Rango de empuje equilibrado
+    let moduloFuerza = (G.fuerza / 100) * 24 + 11; 
 
-    bala.x = 120;
-    bala.y = tuY + 50;
+    bala.x = 130;
+    bala.y = tuY + 40;
     bala.vx = Math.cos(rad) * moduloFuerza;
     bala.vy = -Math.sin(rad) * moduloFuerza;
     bala.activa = true;
@@ -269,16 +267,15 @@ function setupDisparoBasket() {
   window.addEventListener('touchend', soltarDisparo);
 }
 
-// Contraataque automático del jefe automatizado
 let bossAtaqueTimer = 0;
 function contraataqueJefe() {
   if(bala.activa) return;
-  let rad = (Math.random() * 40 + 25) * Math.PI / 180; // Ángulo aleatorio
-  let mod = Math.random() * 6 + 22; // Fuerza calibrada para el mapa
+  let rad = (Math.random() * 35 + 30) * Math.PI / 180; 
+  let mod = Math.random() * 6 + 23; 
 
-  bala.x = W - 120;
-  bala.y = bossY + 50;
-  bala.vx = -Math.cos(rad) * mod; // Dispara hacia la izquierda
+  bala.x = W - 130;
+  bala.y = bossY + 40;
+  bala.vx = -Math.cos(rad) * mod; 
   bala.vy = -Math.sin(rad) * mod;
   bala.activa = true;
   bala.due = 'BOSS';
@@ -297,51 +294,49 @@ function update(timestamp) {
   if(!lastTime) dt = 0;
   lastTime = timestamp;
 
-  // 1. Movimiento ondulatorio vertical automático de los barcos por el borde
-  tuY += tuDir * 3 * (dt / 16);
-  if(tuY < 200 || tuY > 900) tuDir *= -1;
+  // 1. Movimiento vertical de los navíos por los bordes
+  tuY += tuDir * 2.5 * (dt / 16);
+  if(tuY < 180 || tuY > 850) tuDir *= -1;
 
-  bossY += bossDir * 3.5 * (dt / 16);
-  if(bossY < 200 || bossY > 900) bossDir *= -1;
+  bossY += bossDir * 3 * (dt / 16);
+  if(bossY < 180 || bossY > 850) bossDir *= -1;
 
-  // 2. Incrementar barra de potencia si se mantiene pulsado
+  // 2. Control de carga de energía
   if(G.cargandoFuerza) {
-    G.fuerza += 2.5 * (dt / 16);
+    G.fuerza += 2.8 * (dt / 16);
     if(G.fuerza > 100) G.fuerza = 100;
     document.getElementById('power-bar').style.width = G.fuerza + '%';
   }
 
-  // 3. IA Lanzamiento del Jefe
+  // 3. Temporizador disparo de IA Enemiga
   if(!bala.activa) {
     bossAtaqueTimer += dt;
-    if(bossAtaqueTimer >= 2500) {
+    if(bossAtaqueTimer >= 2200) {
       bossAtaqueTimer = 0;
       contraataqueJefe();
     }
   }
 
-  // 4. Física parabólica y gravedad del proyectil barril
+  // 4. Balística parabólica y colisiones
   if(bala.activa) {
     bala.x += bala.vx * (dt / 16);
-    bala.vy += 0.38 * (dt / 16); // Gravedad constante aplicada al vector
+    bala.vy += 0.4 * (dt / 16); 
     bala.y += bala.vy * (dt / 16);
 
-    // Comprobación de colisión con barco enemigo (Boss)
     if(bala.due === 'TU') {
       let dX = Math.abs(bala.x - (W - 100));
-      let dY = Math.abs(bala.y - (bossY + 70));
-      if(dX < 50 && dY < 90) {
+      let dY = Math.abs(bala.y - (bossY + 60));
+      if(dX < 55 && dY < 85) {
         G.bossVidas--;
         document.getElementById('hud-vida-boss').innerText = 'BOSS: ' + '❤️'.repeat(G.bossVidas) + '•'.repeat(3-G.bossVidas);
         bala.activa = false;
         if(G.bossVidas <= 0) { G.running = false; document.getElementById('ov-win').classList.add('on'); }
       }
     } 
-    // Comprobación de colisión con tu barco (Jugador)
     else if(bala.due === 'BOSS') {
       let dX = Math.abs(bala.x - 100);
-      let dY = Math.abs(bala.y - (tuY + 70));
-      if(dX < 50 && dY < 90) {
+      let dY = Math.abs(bala.y - (tuY + 60));
+      if(dX < 55 && dY < 85) {
         G.tuVidas--;
         document.getElementById('hud-vida-tu').innerText = G.ini + ': ' + '❤️'.repeat(G.tuVidas) + '•'.repeat(3-G.tuVidas);
         bala.activa = false;
@@ -349,7 +344,6 @@ function update(timestamp) {
       }
     }
 
-    // Cancelar si sale del lienzo
     if(bala.y > H + 20 || bala.x < -20 || bala.x > W + 20) {
       bala.activa = false;
     }
@@ -359,28 +353,28 @@ function update(timestamp) {
 function render() {
   ctx.clearRect(0, 0, W, H);
 
-  // 1. Dibujar océano neón de fondo
+  // 1. Fondo de agua cenital
   if(assets.mar.complete) ctx.drawImage(assets.mar, 0, 0, W, H);
 
-  // 2. Dibujar Barco del Jugador (Izquierda)
-  if(assets.player.complete) {
-    ctx.drawImage(assets.player, 40, tuY, 110, 150);
+  // 2. Dibujar Barco Protagonista (nav1.png)
+  if(assets.nav1.complete) {
+    ctx.drawImage(assets.nav1, 45, tuY, 110, 140);
   } else {
-    ctx.fillStyle = '#00dbff'; ctx.fillRect(40, tuY, 100, 140);
+    ctx.fillStyle = '#00dbff'; ctx.fillRect(45, tuY, 100, 130);
   }
 
-  // 3. Dibujar Barco del Jefe (Derecha - Espejado para encare)
-  if(assets.boss.complete) {
+  // 3. Dibujar Barco Boss (nav2.png - Espejado para encare hacia la izquierda)
+  if(assets.nav2.complete) {
     ctx.save();
-    ctx.translate(W - 40, bossY);
+    ctx.translate(W - 45, bossY);
     ctx.scale(-1, 1);
-    ctx.drawImage(assets.boss, 0, 0, 110, 150);
+    ctx.drawImage(assets.nav2, 0, 0, 110, 140);
     ctx.restore();
   } else {
-    ctx.fillStyle = '#ff0055'; ctx.fillRect(W - 140, bossY, 100, 140);
+    ctx.fillStyle = '#ff0055'; ctx.fillRect(W - 145, bossY, 100, 130);
   }
 
-  // 4. Dibujar Proyectil Activo (Barril de Cañón)
+  // 4. Proyectil Barril
   if(bala.activa && assets.barril.complete) {
     ctx.drawImage(assets.barril, bala.x - 22, bala.y - 22, 44, 44);
   }
