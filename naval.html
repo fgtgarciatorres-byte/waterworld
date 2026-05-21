@@ -58,17 +58,16 @@ body {
   text-transform:uppercase; box-shadow:0 0 32px #ff00ff55;
 }
 
-/* ═══ CONTENEDOR AJUSTADO (Mantiene proporción 800x1200 en PC) ═══ */
+/* ═══ CONTENEDOR VIRTUAL ESCALABLE ═══ */
 #game-wrap { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:#000; }
 #game-wrap.on { display:flex; }
 #game-cont { position:relative; overflow:hidden; max-height:100vh; aspect-ratio: 800 / 1200; width:100%; height:100%; }
-canvas { display:block; width:100%; height:100%; object-fit:cover; image-rendering:pixelated; }
+canvas { display:block; width:100%; height:100%; object-fit:contain; image-rendering:pixelated; }
 
 /* ═══ HUD CONTROLES NAVALES ═══ */
 #hud-vida-tu { position:absolute; top:25px; left:25px; z-index:20; color:#00dbff; font-size:1.3rem; font-weight:bold; text-shadow:0 0 6px #000; }
 #hud-vida-boss { position:absolute; top:25px; right:25px; z-index:20; color:#ff00ff; font-size:1.3rem; font-weight:bold; text-shadow:0 0 6px #000; }
 
-/* Display de Ángulo Izquierdo */
 #angle-control {
   position:absolute; left:25px; top:45%; transform:translateY(-50%); z-index:25;
   background:rgba(6,16,30,0.9); border:2px solid #00dbff; border-radius:12px;
@@ -77,7 +76,6 @@ canvas { display:block; width:100%; height:100%; object-fit:cover; image-renderi
 .ang-btn { background:#00dbff; border:none; color:#000; width:38px; height:38px; font-weight:bold; font-size:1.3rem; border-radius:6px; cursor:pointer; }
 #angle-disp { font-size:1.15rem; font-weight:bold; color:#00dbff; }
 
-/* Barra de Energía Inferior */
 #control-inferior {
   position:absolute; bottom:30px; left:30px; right:30px; z-index:25;
   display:flex; align-items:center; gap:20px; background:rgba(0,0,0,0.8); padding:16px; border-radius:16px; border:1px solid rgba(255,255,255,0.1);
@@ -90,7 +88,6 @@ canvas { display:block; width:100%; height:100%; object-fit:cover; image-renderi
   padding:16px 34px; font-size:1.15rem; font-weight:bold; letter-spacing:2px; cursor:pointer; font-family:inherit;
 }
 
-/* PANTALLAS FINALES */
 .ov { position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.93); display:none; flex-direction:column; align-items:center; justify-content:center; gap:18px; color:#fff; text-align:center; }
 .ov.on { display:flex; }
 .ov-title { font-size:3rem; font-weight:900; letter-spacing:4px; }
@@ -104,7 +101,6 @@ canvas { display:block; width:100%; height:100%; object-fit:cover; image-renderi
     <div class="logo-main">WATERWORLD</div>
     <div class="logo-sub">⚓ BATALLA NAVAL SUBMARINA ⚓</div>
   </div>
-
   <div>
     <div class="flabel">Elige tu unidad</div>
     <div class="char-preview">
@@ -118,29 +114,24 @@ canvas { display:block; width:100%; height:100%; object-fit:cover; image-renderi
       </div>
     </div>
   </div>
-
   <div>
     <div class="flabel">Tus iniciales</div>
     <input id="inp-ini" type="text" maxlength="3" placeholder="AAA" autocomplete="off" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
   </div>
-
   <button id="btn-start" onclick="empezar()">⚓ &nbsp;ZAFARRANCHO&nbsp; ⚓</button>
 </div>
 
 <div id="game-wrap">
   <div id="game-cont">
     <canvas id="canvas"></canvas>
-
     <div id="hud-vida-tu">TU: ❤️❤️❤️</div>
     <div id="hud-vida-boss">BOSS: ❤️❤️❤️</div>
-
     <div id="angle-control">
       <div style="font-size:0.6rem; letter-spacing:1px; margin-bottom:2px;">ÁNGULO</div>
       <button class="ang-btn" onclick="modificarAngulo(5)">▲</button>
       <div id="angle-disp">45°</div>
       <button class="ang-btn" onclick="modificarAngulo(-5)">▼</button>
     </div>
-
     <div id="control-inferior">
       <div class="power-container">
         <div style="font-size:0.65rem; color:#ffcc00; letter-spacing:2px; font-weight:bold;">POTENCIA CAÑÓN</div>
@@ -151,15 +142,8 @@ canvas { display:block; width:100%; height:100%; object-fit:cover; image-renderi
   </div>
 </div>
 
-<div class="ov" id="ov-dead">
-  <div class="ov-title" style="color:#ff4444">💀 FLOTA HUNDIDA 💀</div>
-  <button class="ov-btn" onclick="location.reload()">🔄 &nbsp;REINTENTAR</button>
-</div>
-
-<div class="ov" id="ov-win">
-  <div class="ov-title" style="color:#00ff99">🏆 VICTORIA NAVAL</div>
-  <button class="ov-btn" onclick="location.reload()">🔄 &nbsp;VOLVER</button>
-</div>
+<div class="ov" id="ov-dead"><div class="ov-title" style="color:#ff4444">💀 FLOTA HUNDIDA 💀</div><button class="ov-btn" onclick="location.reload()">🔄 &nbsp;REINTENTAR</button></div>
+<div class="ov" id="ov-win"><div class="ov-title" style="color:#00ff99">🏆 VICTORIA NAVAL</div><button class="ov-btn" onclick="location.reload()">🔄 &nbsp;VOLVER</button></div>
 
 <script>
 'use strict';
@@ -175,16 +159,13 @@ const W = 800;
 const H = 1200;
 let canvas, ctx;
 
-// Coordenadas de navegación por el borde calibradas para vista aérea (Eje Y)
-let tuY = 500;
-let bossY = 500;
+let tuY = 550;
+let bossY = 550;
 let tuDir = 1;
 let bossDir = -1;
 
-// Objeto Proyectil
 let bala = { x: 0, y: 0, vx: 0, vy: 0, activa: false, r: 16, due: 'TU' };
 
-// Sincronización estricta de Assets
 const assets = {
   mar: new Image(),
   nav1: new Image(),
@@ -213,10 +194,8 @@ function modificarAngulo(val) {
 function empezar() {
   let val = document.getElementById('inp-ini').value.trim();
   if(val) G.ini = val.toUpperCase();
-  
   document.getElementById('screen-portada').style.display = 'none';
   document.getElementById('game-wrap').classList.add('on');
-  
   initGame();
 }
 
@@ -227,7 +206,6 @@ function initGame() {
   ctx = canvas.getContext('2d');
   
   document.getElementById('hud-vida-tu').innerText = G.ini + ': ❤️❤️❤️';
-  
   setupDisparoBasket();
   G.running = true;
   requestAnimationFrame(loop);
@@ -235,32 +213,27 @@ function initGame() {
 
 function setupDisparoBasket() {
   let btn = document.getElementById('btn-shoot');
-  
   const iniciarCarga = (e) => {
     e.preventDefault();
     if(!G.running || bala.activa) return;
     G.fuerza = 0;
     G.cargandoFuerza = true;
   };
-
   const soltarDisparo = () => {
     if(!G.cargandoFuerza) return;
     G.cargandoFuerza = false;
-    
     let rad = G.angulo * Math.PI / 180;
-    let moduloFuerza = (G.fuerza / 100) * 22 + 12; // Ajuste del rango parabólico
+    let moduloFuerza = (G.fuerza / 100) * 20 + 13;
 
-    bala.x = 140;
-    bala.y = tuY + 50;
+    bala.x = 160;
+    bala.y = tuY + 40;
     bala.vx = Math.cos(rad) * moduloFuerza;
     bala.vy = -Math.sin(rad) * moduloFuerza;
     bala.activa = true;
     bala.due = 'TU';
-
     G.fuerza = 0;
     document.getElementById('power-bar').style.width = '0%';
   };
-
   btn.addEventListener('mousedown', iniciarCarga);
   window.addEventListener('mouseup', soltarDisparo);
   btn.addEventListener('touchstart', iniciarCarga);
@@ -270,12 +243,12 @@ function setupDisparoBasket() {
 let bossAtaqueTimer = 0;
 function contraataqueJefe() {
   if(bala.activa) return;
-  let rad = (Math.random() * 35 + 30) * Math.PI / 180; 
-  let mod = Math.random() * 5 + 23; 
-
-  bala.x = W - 140;
-  bala.y = bossY + 50;
-  bala.vx = -Math.cos(rad) * mod; 
+  // 🛠️ REPARACIÓN COHETE BOSS: Reducimos ángulo y bajamos fuerza para que el tiro sea tenso y dentro del lienzo
+  let rad = (Math.random() * 20 + 25) * Math.PI / 180; // Ángulo parabólico bajo (25° a 45°)
+  let mod = Math.random() * 3 + 14;                    // Fuerza calibrada hacia la izquierda (antes 23)
+  bala.x = W - 160;
+  bala.y = bossY + 40;
+  bala.vx = -Math.cos(rad) * mod;
   bala.vy = -Math.sin(rad) * mod;
   bala.activa = true;
   bala.due = 'BOSS';
@@ -294,89 +267,73 @@ function update(timestamp) {
   if(!lastTime) dt = 0;
   lastTime = timestamp;
 
-  // Movimiento controlado por los márgenes en el eje Y
-  tuY += tuDir * 2 * (dt / 16);
-  if(tuY < 200 || tuY > 850) tuDir *= -1;
+  tuY += tuDir * 1.8 * (dt / 16);
+  if(tuY < 250 || tuY > 800) tuDir *= -1;
 
-  bossY += bossDir * 2.5 * (dt / 16);
-  if(bossY < 200 || bossY > 850) bossDir *= -1;
+  bossY += bossDir * 2.2 * (dt / 16);
+  if(bossY < 250 || bossY > 800) bossDir *= -1;
 
   if(G.cargandoFuerza) {
-    G.fuerza += 3 * (dt / 16);
+    G.fuerza += 3.2 * (dt / 16);
     if(G.fuerza > 100) G.fuerza = 100;
     document.getElementById('power-bar').style.width = G.fuerza + '%';
   }
 
   if(!bala.activa) {
     bossAtaqueTimer += dt;
-    if(bossAtaqueTimer >= 2200) {
-      bossAtaqueTimer = 0;
-      contraataqueJefe();
-    }
+    if(bossAtaqueTimer >= 2000) { bossAtaqueTimer = 0; contraataqueJefe(); }
   }
 
   if(bala.activa) {
     bala.x += bala.vx * (dt / 16);
-    bala.vy += 0.42 * (dt / 16); // Gravedad física adaptada
+    bala.vy += 0.38 * (dt / 16);
     bala.y += bala.vy * (dt / 16);
 
-    // Colisiones con cajas de impacto proporcionales aéreas
     if(bala.due === 'TU') {
-      let dX = Math.abs(bala.x - (W - 100));
-      let dY = Math.abs(bala.y - (bossY + 50));
-      if(dX < 65 && dY < 65) {
+      let dX = Math.abs(bala.x - (W - 110));
+      let dY = Math.abs(bala.y - (bossY + 45));
+      if(dX < 65 && dY < 55) {
         G.bossVidas--;
         document.getElementById('hud-vida-boss').innerText = 'BOSS: ' + '❤️'.repeat(G.bossVidas) + '•'.repeat(3-G.bossVidas);
         bala.activa = false;
         if(G.bossVidas <= 0) { G.running = false; document.getElementById('ov-win').classList.add('on'); }
       }
-    } 
-    else if(bala.due === 'BOSS') {
-      let dX = Math.abs(bala.x - 100);
-      let dY = Math.abs(bala.y - (tuY + 50));
-      if(dX < 65 && dY < 65) {
+    } else if(bala.due === 'BOSS') {
+      let dX = Math.abs(bala.x - 110);
+      let dY = Math.abs(bala.y - (tuY + 45));
+      if(dX < 65 && dY < 55) {
         G.tuVidas--;
         document.getElementById('hud-vida-tu').innerText = G.ini + ': ' + '❤️'.repeat(G.tuVidas) + '•'.repeat(3-G.tuVidas);
         bala.activa = false;
         if(G.tuVidas <= 0) { G.running = false; document.getElementById('ov-dead').classList.add('on'); }
       }
     }
-
-    if(bala.y > H + 20 || bala.x < -20 || bala.x > W + 20) {
-      bala.activa = false;
-    }
+    if(bala.y > H + 20 || bala.x < -20 || bala.x > W + 20) bala.activa = false;
   }
 }
 
 function render() {
   ctx.clearRect(0, 0, W, H);
 
-  // 1. Dibujado Proporcional del Océano Cenital sin estirar
+  // 🛠️ REPARACIÓN FONDO AMPLIADO: Ajuste directo de mar.png sin recortes ni ampliaciones exageradas
   if(assets.mar.complete) {
     ctx.drawImage(assets.mar, 0, 0, W, H);
   }
 
-  // 2. Barco Aliado (nav1.png) - Escala y dimensiones cenitales fijadas
   if(assets.nav1.complete) {
-    ctx.drawImage(assets.nav1, 30, tuY, 150, 100); // Proporción horizontal aérea
+    ctx.drawImage(assets.nav1, 40, tuY, 140, 90);
   } else {
-    ctx.fillStyle = '#00dbff'; ctx.fillRect(30, tuY, 130, 80);
+    ctx.fillStyle = '#00dbff'; ctx.fillRect(40, tuY, 120, 70);
   }
 
-  // 3. Barco Enemigo (nav2.png) - Espejado limpio en el margen derecho
   if(assets.nav2.complete) {
-    ctx.save();
-    ctx.translate(W - 30, bossY);
-    ctx.scale(-1, 1);
-    ctx.drawImage(assets.nav2, 0, 0, 150, 100); // Misma escala aérea
-    ctx.restore();
+    ctx.drawImage(assets.nav2, W - 180, bossY, 140, 90);
   } else {
-    ctx.fillStyle = '#ff0055'; ctx.fillRect(W - 160, bossY, 130, 80);
+    ctx.fillStyle = '#ff0055'; ctx.fillRect(W - 160, bossY, 120, 70);
   }
 
-  // 4. Proyectil Barril
   if(bala.activa && assets.barril.complete) {
-    ctx.drawImage(assets.barril, bala.x - 20, bala.y - 20, 40, 40);
+    ctx.drawImage(assets.barril, bala.x - 18, bala.y - 18, 36, 36);
   }
 }
 </script>
