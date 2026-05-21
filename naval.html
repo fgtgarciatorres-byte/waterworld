@@ -58,11 +58,11 @@ body {
   text-transform:uppercase; box-shadow:0 0 32px #ff00ff55;
 }
 
-/* ═══ CONTENEDOR DE JUEGO AUTO-ESCALABLE ═══ */
+/* ═══ CONTENEDOR AJUSTADO (Mantiene proporción 800x1200 en PC) ═══ */
 #game-wrap { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:#000; }
 #game-wrap.on { display:flex; }
 #game-cont { position:relative; overflow:hidden; max-height:100vh; aspect-ratio: 800 / 1200; width:100%; height:100%; }
-canvas { display:block; width:100%; height:100%; object-fit:contain; image-rendering:pixelated; }
+canvas { display:block; width:100%; height:100%; object-fit:cover; image-rendering:pixelated; }
 
 /* ═══ HUD CONTROLES NAVALES ═══ */
 #hud-vida-tu { position:absolute; top:25px; left:25px; z-index:20; color:#00dbff; font-size:1.3rem; font-weight:bold; text-shadow:0 0 6px #000; }
@@ -77,7 +77,7 @@ canvas { display:block; width:100%; height:100%; object-fit:contain; image-rende
 .ang-btn { background:#00dbff; border:none; color:#000; width:38px; height:38px; font-weight:bold; font-size:1.3rem; border-radius:6px; cursor:pointer; }
 #angle-disp { font-size:1.15rem; font-weight:bold; color:#00dbff; }
 
-/* Barra de Energía Inferior (Mecánica Baloncesto) */
+/* Barra de Energía Inferior */
 #control-inferior {
   position:absolute; bottom:30px; left:30px; right:30px; z-index:25;
   display:flex; align-items:center; gap:20px; background:rgba(0,0,0,0.8); padding:16px; border-radius:16px; border:1px solid rgba(255,255,255,0.1);
@@ -175,16 +175,16 @@ const W = 800;
 const H = 1200;
 let canvas, ctx;
 
-// Estados de navegación vertical
-let tuY = 600;
-let bossY = 600;
+// Coordenadas de navegación por el borde calibradas para vista aérea (Eje Y)
+let tuY = 500;
+let bossY = 500;
 let tuDir = 1;
 let bossDir = -1;
 
 // Objeto Proyectil
 let bala = { x: 0, y: 0, vx: 0, vy: 0, activa: false, r: 16, due: 'TU' };
 
-// Recursos unificados según tus cambios de última hora
+// Sincronización estricta de Assets
 const assets = {
   mar: new Image(),
   nav1: new Image(),
@@ -192,9 +192,9 @@ const assets = {
   barril: new Image()
 };
 
-assets.mar.src = 'mar.png';      // Imagen cenital generada
-assets.nav1.src = 'nav1.png';    // Barco Protagonista
-assets.nav2.src = 'nav2.png';    // Barco Boss
+assets.mar.src = 'mar.png';      
+assets.nav1.src = 'nav1.png';    
+assets.nav2.src = 'nav2.png';    
 assets.barril.src = 'barril.png';
 
 function selectChar(g) {
@@ -248,10 +248,10 @@ function setupDisparoBasket() {
     G.cargandoFuerza = false;
     
     let rad = G.angulo * Math.PI / 180;
-    let moduloFuerza = (G.fuerza / 100) * 24 + 11; 
+    let moduloFuerza = (G.fuerza / 100) * 22 + 12; // Ajuste del rango parabólico
 
-    bala.x = 130;
-    bala.y = tuY + 40;
+    bala.x = 140;
+    bala.y = tuY + 50;
     bala.vx = Math.cos(rad) * moduloFuerza;
     bala.vy = -Math.sin(rad) * moduloFuerza;
     bala.activa = true;
@@ -271,10 +271,10 @@ let bossAtaqueTimer = 0;
 function contraataqueJefe() {
   if(bala.activa) return;
   let rad = (Math.random() * 35 + 30) * Math.PI / 180; 
-  let mod = Math.random() * 6 + 23; 
+  let mod = Math.random() * 5 + 23; 
 
-  bala.x = W - 130;
-  bala.y = bossY + 40;
+  bala.x = W - 140;
+  bala.y = bossY + 50;
   bala.vx = -Math.cos(rad) * mod; 
   bala.vy = -Math.sin(rad) * mod;
   bala.activa = true;
@@ -294,21 +294,19 @@ function update(timestamp) {
   if(!lastTime) dt = 0;
   lastTime = timestamp;
 
-  // 1. Movimiento vertical de los navíos por los bordes
-  tuY += tuDir * 2.5 * (dt / 16);
-  if(tuY < 180 || tuY > 850) tuDir *= -1;
+  // Movimiento controlado por los márgenes en el eje Y
+  tuY += tuDir * 2 * (dt / 16);
+  if(tuY < 200 || tuY > 850) tuDir *= -1;
 
-  bossY += bossDir * 3 * (dt / 16);
-  if(bossY < 180 || bossY > 850) bossDir *= -1;
+  bossY += bossDir * 2.5 * (dt / 16);
+  if(bossY < 200 || bossY > 850) bossDir *= -1;
 
-  // 2. Control de carga de energía
   if(G.cargandoFuerza) {
-    G.fuerza += 2.8 * (dt / 16);
+    G.fuerza += 3 * (dt / 16);
     if(G.fuerza > 100) G.fuerza = 100;
     document.getElementById('power-bar').style.width = G.fuerza + '%';
   }
 
-  // 3. Temporizador disparo de IA Enemiga
   if(!bala.activa) {
     bossAtaqueTimer += dt;
     if(bossAtaqueTimer >= 2200) {
@@ -317,16 +315,16 @@ function update(timestamp) {
     }
   }
 
-  // 4. Balística parabólica y colisiones
   if(bala.activa) {
     bala.x += bala.vx * (dt / 16);
-    bala.vy += 0.4 * (dt / 16); 
+    bala.vy += 0.42 * (dt / 16); // Gravedad física adaptada
     bala.y += bala.vy * (dt / 16);
 
+    // Colisiones con cajas de impacto proporcionales aéreas
     if(bala.due === 'TU') {
       let dX = Math.abs(bala.x - (W - 100));
-      let dY = Math.abs(bala.y - (bossY + 60));
-      if(dX < 55 && dY < 85) {
+      let dY = Math.abs(bala.y - (bossY + 50));
+      if(dX < 65 && dY < 65) {
         G.bossVidas--;
         document.getElementById('hud-vida-boss').innerText = 'BOSS: ' + '❤️'.repeat(G.bossVidas) + '•'.repeat(3-G.bossVidas);
         bala.activa = false;
@@ -335,8 +333,8 @@ function update(timestamp) {
     } 
     else if(bala.due === 'BOSS') {
       let dX = Math.abs(bala.x - 100);
-      let dY = Math.abs(bala.y - (tuY + 60));
-      if(dX < 55 && dY < 85) {
+      let dY = Math.abs(bala.y - (tuY + 50));
+      if(dX < 65 && dY < 65) {
         G.tuVidas--;
         document.getElementById('hud-vida-tu').innerText = G.ini + ': ' + '❤️'.repeat(G.tuVidas) + '•'.repeat(3-G.tuVidas);
         bala.activa = false;
@@ -353,30 +351,32 @@ function update(timestamp) {
 function render() {
   ctx.clearRect(0, 0, W, H);
 
-  // 1. Fondo de agua cenital
-  if(assets.mar.complete) ctx.drawImage(assets.mar, 0, 0, W, H);
-
-  // 2. Dibujar Barco Protagonista (nav1.png)
-  if(assets.nav1.complete) {
-    ctx.drawImage(assets.nav1, 45, tuY, 110, 140);
-  } else {
-    ctx.fillStyle = '#00dbff'; ctx.fillRect(45, tuY, 100, 130);
+  // 1. Dibujado Proporcional del Océano Cenital sin estirar
+  if(assets.mar.complete) {
+    ctx.drawImage(assets.mar, 0, 0, W, H);
   }
 
-  // 3. Dibujar Barco Boss (nav2.png - Espejado para encare hacia la izquierda)
+  // 2. Barco Aliado (nav1.png) - Escala y dimensiones cenitales fijadas
+  if(assets.nav1.complete) {
+    ctx.drawImage(assets.nav1, 30, tuY, 150, 100); // Proporción horizontal aérea
+  } else {
+    ctx.fillStyle = '#00dbff'; ctx.fillRect(30, tuY, 130, 80);
+  }
+
+  // 3. Barco Enemigo (nav2.png) - Espejado limpio en el margen derecho
   if(assets.nav2.complete) {
     ctx.save();
-    ctx.translate(W - 45, bossY);
+    ctx.translate(W - 30, bossY);
     ctx.scale(-1, 1);
-    ctx.drawImage(assets.nav2, 0, 0, 110, 140);
+    ctx.drawImage(assets.nav2, 0, 0, 150, 100); // Misma escala aérea
     ctx.restore();
   } else {
-    ctx.fillStyle = '#ff0055'; ctx.fillRect(W - 145, bossY, 100, 130);
+    ctx.fillStyle = '#ff0055'; ctx.fillRect(W - 160, bossY, 130, 80);
   }
 
   // 4. Proyectil Barril
   if(bala.activa && assets.barril.complete) {
-    ctx.drawImage(assets.barril, bala.x - 22, bala.y - 22, 44, 44);
+    ctx.drawImage(assets.barril, bala.x - 20, bala.y - 20, 40, 40);
   }
 }
 </script>
