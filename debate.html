@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>WaterWorld — Combate Dialéctico</title>
+<style>
+/* ═══ RESET & BASE ════════════════════════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#000; overflow:hidden;
+  width:100vw; height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Courier New', Courier, monospace;
+  touch-action:manipulation;
+}
+
+/* ═══ PORTADA INTERFAZ ═════════════════════════════ */
+#screen-portada {
+  position:fixed; inset:0; z-index:1000;
+  background:radial-gradient(ellipse 100% 70% at 50% 15%, #0e2040 0%, #06101e 60%, #000 100%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:26px; color:#fff;
+}
+#screen-portada::after {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.12) 2px, rgba(0,0,0,.12) 4px);
+}
+.logo { text-align:center; }
+.logo-main {
+  font-size:clamp(2.8rem, 9vw, 4.6rem); font-weight:900; color:#ff00ff; letter-spacing:6px; line-height:1.0;
+  text-shadow:0 0 18px #ff00ff, 0 0 50px #ff00ff55;
+}
+.logo-sub { margin-top:6px; font-size:.72rem; letter-spacing:5px; color:#00dbff; text-transform:uppercase; opacity:.72; }
+
+.char-preview { display:flex; gap:20px; }
+.char-card {
+  display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; padding:12px 18px; border-radius:14px;
+  border:3px solid rgba(255,255,255,.08); transition:all .25s;
+}
+.char-emo { font-size:3rem; line-height:1; filter:brightness(0.55); }
+.char-lbl { font-size:.6rem; letter-spacing:3px; color:rgba(255,255,255,.3); }
+.char-card.sel-m { border-color:#00dbff; background:rgba(0,219,255,.07); }
+.char-card.sel-m .char-emo { filter:brightness(1); transform:scale(1.1); }
+.char-card.sel-m .char-lbl { color:#00dbff; }
+.char-card.sel-f { border-color:#ff00ff; background:rgba(255,0,255,.07); }
+.char-card.sel-f .char-emo { filter:brightness(1); transform:scale(1.1); }
+.char-card.sel-f .char-lbl { color:#ff00ff; }
+
+.flabel { font-size:.58rem; letter-spacing:4px; color:#2e4055; text-transform:uppercase; margin-bottom:6px; text-align:center; }
+#inp-ini {
+  display:block; background:rgba(0,0,0,.8); border:2px solid #00dbff; border-radius:10px; color:#00dbff;
+  font-size:2rem; padding:9px 18px; width:152px; text-align:center; outline:none; letter-spacing:14px; font-weight:bold;
+  text-transform:uppercase; font-family:inherit;
+}
+#btn-start {
+  background:linear-gradient(135deg,#ff00ff 0%,#bb00bb 100%); border:none; border-radius:50px; color:#fff;
+  padding:17px 54px; font-size:1.05rem; font-weight:900; letter-spacing:4px; cursor:pointer; font-family:inherit;
+  text-transform:uppercase; box-shadow:0 0 32px #ff00ff55;
+}
+
+/* ═══ CONTENEDOR DE JUEGO AUTO-ESCALABLE (ADAPTACIÓN PC) ═══ */
+#game-wrap { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:#000; }
+#game-wrap.on { display:flex; }
+#game-cont { position:relative; overflow:hidden; max-height:100vh; aspect-ratio: 800 / 1200; width:100%; height:100%; }
+canvas { display:block; width:100%; height:100%; object-fit:contain; image-rendering:pixelated; }
+
+/* ═══ INTERFAZ DIALÉCTICA ═══ */
+#dialogue-box {
+  position:absolute; bottom:40px; left:20px; right:20px; z-index:30;
+  background:rgba(3, 8, 20, 0.95); border:3px solid #00dbff; border-radius:16px;
+  padding:20px; display:flex; flex-direction:column; gap:14px; box-shadow:0 0 25px rgba(0,219,255,0.3);
+}
+#boss-speech {
+  color:#ff00ff; font-size:1.1rem; font-weight:bold; line-height:1.4;
+  border-bottom:1px solid rgba(255,0,255,0.2); padding-bottom:10px;
+}
+.options-list { display:flex; flex-direction:column; gap:10px; }
+.opt-btn {
+  background:rgba(255,255,255,0.03); border:1px solid rgba(0,219,255,0.3); border-radius:8px;
+  color:#fff; padding:12px 16px; text-align:left; font-family:inherit; font-size:0.95rem;
+  cursor:pointer; transition:all 0.2s;
+}
+.opt-btn:hover { background:rgba(0,219,255,0.12); border-color:#00dbff; color:#00dbff; padding-left:22px; }
+
+/* HUD SUPERIOR */
+#hud {
+  position:absolute; top:0; left:0; right:0; z-index:20;
+  display:flex; justify-content:space-between; align-items:center; padding:20px 24px; pointer-events:none;
+}
+#hud-score { font-size:1.4rem; font-weight:bold; color:#ffcc00; text-shadow:0 0 8px #000; }
+#hud-player { font-size:1.3rem; color:#00dbff; font-weight:bold; text-shadow:0 0 8px #000; }
+#lvl-badge { position:absolute; top:0; left:50%; transform:translateX(-50%); z-index:20; font-size:.8rem; letter-spacing:3px; color:#ff00ffb5; text-transform:uppercase; padding-top:22px; font-weight:bold; }
+
+/* PANTALLAS DE RESULTADO */
+.ov { position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.93); display:none; flex-direction:column; align-items:center; justify-content:center; gap:18px; color:#fff; text-align:center; }
+.ov.on { display:flex; }
+.ov-title { font-size:3rem; font-weight:900; letter-spacing:4px; }
+.ov-btn { background:#ff00ff; border:none; border-radius:50px; color:#fff; padding:15px 44px; font-size:.94rem; font-weight:bold; cursor:pointer; letter-spacing:3px; }
+</style>
+</head>
+<body>
+
+<div id="screen-portada">
+  <div class="logo">
+    <div class="logo-main">WATERWORLD</div>
+    <div class="logo-sub">⚔️ DUELO DIALÉCTICO CORPORATIVO ⚔️</div>
+  </div>
+
+  <div>
+    <div class="flabel">Elige tu unidad</div>
+    <div class="char-preview">
+      <div class="char-card sel-m" id="cbM" onclick="selectChar('M')">
+        <div class="char-emo">👨‍💼</div>
+        <span class="char-lbl">HOMBRE</span>
+      </div>
+      <div class="char-card" id="cbF" onclick="selectChar('F')">
+        <div class="char-emo">👩‍💼</div>
+        <span class="char-lbl">MUJER</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="flabel">Tus iniciales</div>
+    <input id="inp-ini" type="text" maxlength="3" placeholder="AAA" autocomplete="off" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+  </div>
+
+  <button id="btn-start" onclick="empezar()">⚔️ &nbsp;INICIAR DEBATE&nbsp; ⚔️</button>
+</div>
+
+<div id="game-wrap">
+  <div id="game-cont">
+    <canvas id="canvas"></canvas>
+
+    <div id="hud">
+      <div id="hud-score">PUNTOS: 0</div>
+      <div id="hud-player">AAA</div>
+    </div>
+    <div id="lvl-badge">FASE 1: PASILLO DE CUBÍCULOS</div>
+
+    <div id="dialogue-box">
+      <div id="boss-speech">Jefe: "Cargando ataque dialéctico..."</div>
+      <div class="options-list" id="options-container"></div>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="ov-end">
+  <div class="ov-title" id="end-title" style="color:#00ff99">¡COMBATE TERMINADO!</div>
+  <div class="ov-score" id="end-score">PUNTUACIÓN TOTAL: 0 PTS</div>
+  <button class="ov-btn" onclick="location.reload()">🔄 &nbsp;VOLVER AL INICIO</button>
+</div>
+
+<script>
+'use strict';
+
+// Diálogos oficiales del documento del juego
+const baseDeDuelos = {
+  fase1: [
+    {
+      ataque: 'Jefe: "He visto informes con más personalidad que tu hoja de horas."',
+      opciones: [
+        { texto: 'Normal, tú solo lees los que ya están maquillados.', pts: 100 },
+        { texto: 'Pues al menos yo relleno la mía puntualmente.', pts: 25 },
+        { texto: '¿Ah, sí? ¿Cuál de todos ellos?', pts: 0 }
+      ]
+    },
+    {
+      ataque: 'Jefe: "¡Si tus propuestas fueran un software, estarían llenas de malware de desidia!"',
+      opciones: [
+        { texto: 'Y si tu liderazgo fuera una app, ya la habrían borrado de la tienda.', pts: 100 },
+        { texto: 'El sistema operativo de la empresa es el que falla.', pts: 25 },
+        { texto: 'Voy a pasarle el antivirus al archivo de Excel.', pts: 0 }
+      ]
+    }
+  ],
+  fase2: [
+    {
+      ataque: 'Jefe: "Tu productividad es más baja que el interés de un pagaré obeso."',
+      opciones: [
+        { texto: 'La tuya es nula, pero cobras más por el peso.', pts: 100 },
+        { texto: 'Eso es un exceso corporativo.', pts: 25 },
+        { texto: 'No se preocupe, estoy a dieta rigurosa.', pts: 0 }
+      ]
+    },
+    {
+      ataque: 'Jefe: "¡Eres el pasante que nunca encuentra la toalla!"',
+      opciones: [
+        { texto: 'Y tú el jefe que se apropia de la medalla.', pts: 100 },
+        { texto: 'La tiene usted guardada en su despacho.', pts: 25 },
+        { texto: 'Qué bien rima hoy, señor director.', pts: 0 }
+      ]
+    },
+    {
+      ataque: 'Jefe: "Tu cara de sueño me da más pena que un lunes sin cafeína plena."',
+      opciones: [
+        { texto: 'La tuya me da grima, como tu corbata de gangrena.', pts: 100 },
+        { texto: '¿Me da permiso para ir a por un café?', pts: 0 },
+        { texto: 'Es culpa del turno de noche de esta semana.', pts: 25 }
+      ]
+    }
+  ]
+};
+
+const G = {
+  ini: 'AAA', gen: 'M',
+  fase: 1, dueloIndex: 0,
+  score: 0, running: false
+};
+
+const W = 800;
+const H = 1200;
+let canvas, ctx;
+
+// Mayúsculas adaptadas idénticas a los nombres reales de los archivos en GitHub
+const assets = {
+  pasillo: new Image(),
+  reunion: new Image(),
+  boss: new Image(),
+  player: new Image()
+};
+
+assets.pasillo.src = 'Pasillo.png';   
+assets.reunion.src = 'Reunion.png';   
+assets.boss.src = 'boss.png';         
+
+function selectChar(g) {
+  G.gen = g;
+  document.getElementById('cbM').classList.toggle('sel-m', g === 'M');
+  document.getElementById('cbF').classList.toggle('sel-f', g === 'F');
+}
+
+function empezar() {
+  let val = document.getElementById('inp-ini').value.trim();
+  if(val) G.ini = val.toUpperCase();
+  
+  assets.player.src = G.gen === 'M' ? 'personajeh.png' : 'personajem.png';
+  
+  document.getElementById('screen-portada').style.display = 'none';
+  document.getElementById('game-wrap').classList.add('on');
+  
+  initGame();
+}
+
+function initGame() {
+  canvas = document.getElementById('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  ctx = canvas.getContext('2d');
+  
+  document.getElementById('hud-player').innerText = G.ini;
+  G.running = true;
+  
+  cargarDuelo();
+  requestAnimationFrame(loop);
+}
+
+function cargarDuelo() {
+  let lista = G.fase === 1 ? baseDeDuelos.fase1 : baseDeDuelos.fase2;
+  
+  document.getElementById('lvl-badge').innerText = G.fase === 1 
+    ? "FASE 1: PASILLO DE CUBÍCULOS (SIN RIMA)" 
+    : "FASE 2: SALA DE REUNIONES (CON RIMA)";
+
+  if (G.dueloIndex >= lista.length) {
+    if (G.fase === 1) {
+      G.fase = 2;
+      G.dueloIndex = 0;
+      lista = baseDeDuelos.fase2;
+      document.getElementById('lvl-badge').innerText = "FASE 2: SALA DE REUNIONES (CON RIMA)";
+    } else {
+      terminarJuego();
+      return;
+    }
+  }
+
+  let dueloActual = lista[G.dueloIndex];
+  document.getElementById('boss-speech').innerText = dueloActual.ataque;
+  
+  let optionsContainer = document.getElementById('options-container');
+  optionsContainer.innerHTML = '';
+
+  dueloActual.opciones.forEach(opc => {
+    let btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.innerText = opc.texto;
+    btn.onclick = () => procesarRespuesta(opc.pts);
+    optionsContainer.appendChild(btn);
+  });
+}
+
+function procesarRespuesta(puntosObtenidos) {
+  G.score += puntosObtenidos;
+  document.getElementById('hud-score').innerText = `PUNTOS: ${G.score}`;
+  G.dueloIndex++;
+  cargarDuelo();
+}
+
+function terminarJuego() {
+  G.running = false;
+  document.getElementById('end-score').innerText = `PUNTUACIÓN TOTAL: ${G.score} PTS`;
+  
+  if(G.score >= 400) {
+    document.getElementById('end-title').innerText = "¡JEFE DERROTADO!";
+    document.getElementById('end-title').style.color = "#00ff99";
+  } else {
+    document.getElementById('end-title').innerText = "TE FALTA ASERTIVIDAD";
+    document.getElementById('end-title').style.color = "#ff4444";
+  }
+  
+  document.getElementById('ov-end').classList.add('on');
+}
+
+function loop() {
+  if (!G.running) return;
+  render();
+  requestAnimationFrame(loop);
+}
+
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  
+  // 1. Dibujado de Fondo Blindado
+  let fActual = G.fase === 1 ? assets.pasillo : assets.reunion;
+  if (fActual && fActual.complete && fActual.naturalWidth > 0) {
+    ctx.drawImage(fActual, 0, 0, W, H);
+  } else {
+    ctx.fillStyle = G.fase === 1 ? '#0a1526' : '#260a21';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '20px Courier New';
+    ctx.fillText('Cargando escenario neón...', 260, 300);
+  }
+
+  // 2. Dibujado de Boss Blindado
+  if (assets.boss && assets.boss.complete && assets.boss.naturalWidth > 0) {
+    ctx.drawImage(assets.boss, 60, 460, 200, 260);
+  } else {
+    ctx.fillStyle = '#ff0055';
+    ctx.fillRect(60, 460, 200, 260);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '24px Courier New';
+    ctx.fillText('👹 JEFE', 110, 590);
+  }
+
+  // 3. Dibujado de Jugador Blindado (Espejado)
+  if (assets.player && assets.player.complete && assets.player.naturalWidth > 0) {
+    ctx.save();
+    ctx.translate(W - 60, 460);
+    ctx.scale(-1, 1);
+    ctx.drawImage(assets.player, 0, 0, 200, 260);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = '#00dbff';
+    ctx.fillRect(W - 260, 460, 200, 260);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '24px Courier New';
+    ctx.fillText('💼 TU', W - 180, 590);
+  }
+}
+</script>
+</body>
+</html>
