@@ -154,7 +154,6 @@ canvas { display:block; width:100%; height:100%; object-fit:contain; image-rende
 <script>
 'use strict';
 
-// Diálogos oficiales del documento del juego
 const baseDeDuelos = {
   fase1: [
     {
@@ -212,7 +211,7 @@ const W = 800;
 const H = 1200;
 let canvas, ctx;
 
-// Mayúsculas adaptadas idénticas a los nombres reales de los archivos en GitHub
+// ══ CORRECCIÓN CRÍTICA DE NOMBRES EN MINÚSCULAS DE GITHUB ══
 const assets = {
   pasillo: new Image(),
   reunion: new Image(),
@@ -220,9 +219,15 @@ const assets = {
   player: new Image()
 };
 
-assets.pasillo.src = 'Pasillo.png';   
-assets.reunion.src = 'Reunion.png';   
-assets.boss.src = 'boss.png';         
+// Vinculamos disparadores automáticos de refresco al terminar de cargar
+assets.pasillo.onload = () => { if(G.running) render(); };
+assets.reunion.onload = () => { if(G.running) render(); };
+assets.boss.onload    = () => { if(G.running) render(); };
+assets.player.onload  = () => { if(G.running) render(); };
+
+assets.pasillo.src = 'pasillo.png';   // Corregido a minúscula 'pasillo'
+assets.reunion.src = 'reunion.png';   // Corregido a minúscula 'reunion'
+assets.boss.src = 'boss.png';
 
 function selectChar(g) {
   G.gen = g;
@@ -312,52 +317,4 @@ function terminarJuego() {
 }
 
 function loop() {
-  if (!G.running) return;
-  render();
-  requestAnimationFrame(loop);
-}
-
-function render() {
-  ctx.clearRect(0, 0, W, H);
-  
-  // 1. Dibujado de Fondo Blindado
-  let fActual = G.fase === 1 ? assets.pasillo : assets.reunion;
-  if (fActual && fActual.complete && fActual.naturalWidth > 0) {
-    ctx.drawImage(fActual, 0, 0, W, H);
-  } else {
-    ctx.fillStyle = G.fase === 1 ? '#0a1526' : '#260a21';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '20px Courier New';
-    ctx.fillText('Cargando escenario neón...', 260, 300);
-  }
-
-  // 2. Dibujado de Boss Blindado
-  if (assets.boss && assets.boss.complete && assets.boss.naturalWidth > 0) {
-    ctx.drawImage(assets.boss, 60, 460, 200, 260);
-  } else {
-    ctx.fillStyle = '#ff0055';
-    ctx.fillRect(60, 460, 200, 260);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '24px Courier New';
-    ctx.fillText('👹 JEFE', 110, 590);
-  }
-
-  // 3. Dibujado de Jugador Blindado (Espejado)
-  if (assets.player && assets.player.complete && assets.player.naturalWidth > 0) {
-    ctx.save();
-    ctx.translate(W - 60, 460);
-    ctx.scale(-1, 1);
-    ctx.drawImage(assets.player, 0, 0, 200, 260);
-    ctx.restore();
-  } else {
-    ctx.fillStyle = '#00dbff';
-    ctx.fillRect(W - 260, 460, 200, 260);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '24px Courier New';
-    ctx.fillText('💼 TU', W - 180, 590);
-  }
-}
-</script>
-</body>
-</html>
+  if (!
